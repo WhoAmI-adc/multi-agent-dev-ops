@@ -1,0 +1,498 @@
+﻿Running the Crew
+
+============================================================
+[AI] 多智能体协同系统 - 研究助手
+============================================================
+[输入] 请输入研究话题: [默认] 使用默认话题: AI LLMs
+
+[配置信息]
+   - 话题: AI LLMs
+   - 年份: 2026
+------------------------------------------------------------
++-------------------------[CrewAIEventsBus] Sync handler error in on_crew_started: 'gbk' codec can't 
+encode character '\U0001f680' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_task_started: 'gbk' codec can't 
+encode character '\U0001f680' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_agent_logs_started: 'gbk' codec 
+can't encode character '\U0001f680' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_agent_logs_execution: 'gbk' codec 
+can't encode character '\U0001f680' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_task_completed: 'gbk' codec can't 
+encode character '\U0001f680' in position 1: illegal multibyte sequence
++------------------------------[CrewAIEventsBus] Sync handler error in on_task_started: 'gbk' codec can't 
+encode character '\U0001f4cb' in position 1: illegal multibyte sequence
++------------------------------[CrewAIEventsBus] Sync handler error in on_agent_logs_started: 'gbk' codec 
+can't encode character '\U0001f4cb' in position 1: illegal multibyte sequence
++------------------------------[CrewAIEventsBus] Sync handler error in on_agent_logs_execution: 'gbk' codec 
+can't encode character '\U0001f4cb' in position 1: illegal multibyte sequence
++------------------------------[CrewAIEventsBus] Sync handler error in on_task_completed: 'gbk' codec can't 
+encode character '\U0001f4cb' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_task_started: 'gbk' codec can't 
+encode character '\U0001f680' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_agent_logs_started: 'gbk' codec 
+can't encode character '\U0001f680' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_agent_logs_execution: 'gbk' codec 
+can't encode character '\U0001f680' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_task_completed: 'gbk' codec can't 
+encode character '\U0001f680' in position 1: illegal multibyte sequence
++------------------------------[CrewAIEventsBus] Sync handler error in on_task_started: 'gbk' codec can't 
+encode character '\U0001f4cb' in position 1: illegal multibyte sequence
++------------------------------[CrewAIEventsBus] Sync handler error in on_agent_logs_started: 'gbk' codec 
+can't encode character '\U0001f4cb' in position 1: illegal multibyte sequence
++------------------------------[CrewAIEventsBus] Sync handler error in on_agent_logs_execution: 'gbk' codec 
+can't encode character '\U0001f4cb' in position 1: illegal multibyte sequence
++------------------------------[CrewAIEventsBus] Sync handler error in on_task_completed: 'gbk' codec can't 
+encode character '\U0001f4cb' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_crew_completed: 'gbk' codec can't 
+encode character '\U0001f680' in position 1: illegal multibyte sequence
+
+============================================================
+[完成] 任务执行完成!
+============================================================
+
+[结果摘要]
+好的，作为自动化修复专家，我已整合监控与日志分析报告，完成综合诊断。现在，我将制定一份详细、可执行的修复方案。
+
+# **故障修复方案**
+
+**故障诊断结论：**
+本次故障的根本原因是**低效SQL查询（`SELECT * FROM orders`全表扫描）**。该查询长时间占用数据库连接与服务器资源（CPU、磁盘I/O），导致数据库连接池快速耗尽，引发应用服务性能严重下降、错误频发的级联故障。所有监控指标异常（高CPU、高内存、高磁盘I/O、高响应时间）均为此根因的直接或间接表现。
+
+---
+
+## **一、 立即缓解措施（快速恢复服务）**
+
+**目标：** 在5-15分钟内，快速降低系统负载，恢复服务基本可用性，为根本解决争取时间。
+**核心思路：** 终止问题进程、临时扩容、分流负载。
+
+### **操作步骤：**
+
+1.  **识别并终止罪魁祸首进程（首要行动）：**
+    *   **执行脚本：**
+        ```bash
+        # 1. 在数据库服务器上，查找当前正在执行的慢查询，特别是涉及`orders`表的。
+        # 以MySQL为例：
+        mysql -u${DB_ADMIN_USER} -p${DB_ADMIN_PASS} -h${DB_HOST} -e "SHOW FULL PROCESSLIST;" | grep -i orders | awk '{print "KILL", $1";"}' > /tmp/kill_slow_queries.sql
+        
+        # 2. 如果找到慢查询，终止它们。执行前请确认，避免误杀重要业务查询。
+        if [ -s /tmp/kill_slow_queries.sql ]; then
+            echo "发现慢查询，准备终止..."
+            mysql -u${DB_ADMIN_USER} -p${DB_ADMIN_PASS} -h${DB_HOST} < /tmp/kill_slow_queries.sql
+            echo "慢查询已终止。"
+        else
+            echo "未发现正在执行的涉及orders表的慢查询。"
+        fi
+        
+        # 3. 在应用服务器上，查找占用CPU/内存最高的Java进程（假设为Java应用）。
+        PID=$(top -bn1 | grep java | head -1 | awk '{print $1}')
+        if [ ! -z "$PID" ]; then
+            # 发送SIGTERM信号，允许进程优雅关闭
+            kill -15 $PID
+            sleep 10
+            # 如果进程仍在，强制终止
+            if ps -p $PID > /dev/null; then
+                kill -9 $PID
+                echo "已强制终止应用进程PID: $PID"
+            fi
+        fi
+        ```
+    *   **预期结果：** 数据库服务器CPU和磁盘I/O负载应迅速下降。应用服务器负载随之缓解。连接池压力减轻。
+
+2.  **临时扩容应用实例（横向扩展）：**
+    *   **执行脚本（以K8s为例）：**
+        ```bash
+        # 将当前应用部署的副本数临时增加，以分担负载。
+        DEPLOYMENT_NAME="your-application-deployment"
+        CURRENT_REPLICAS=$(kubectl get deployment $DEPLOYMENT_NAME -o=jsonpath='{.spec.replicas}')
+        TARGET_REPLICAS=$((CURRENT_REPLICAS + 2)) # 假设增加2个副本
+        
+        kubectl scale deployment $DEPLOYMENT_NAME --replicas=$TARGET_REPLICAS
+        
+        echo "应用副本数已从 $CURRENT_REPLICAS 扩容至 $TARGET_REPLICAS。"
+        # 等待Pod就绪
+        kubectl rollout status deployment/$DEPLOYMENT_NAME --timeout=300s
+        ```
+    *   **预期结果：** 用户请求被分摊到更多应用实例上，每个实例的连接池压力减小，整体服务响应时间改善。
+
+3.  **启用负载均衡器或API网关的降级/熔断规则（如有）：**
+    *   **执行动作：** 如果配置了Sentinel、Hystrix或网关熔断规则，立即启用针对`/api/orders`或类似疑似触发慢查询接口的**熔断策略**，快速失败并返回默认响应，防止单个接口拖垮整个服务。
+    *   **预期结果：** 问题接口的流量被快速拒绝，保护系统其他部分。
+
+---
+
+## **二、 根本解决措施（防止再次发生）**
+
+**目标：** 彻底修复导致性能问题的根本原因，并优化系统健壮性。
+
+### **操作步骤：**
+
+1.  **优化问题SQL语句与数据库：**
+    *   **步骤1：分析并创建索引。**
+        ```bash
+        # 连接到数据库，分析`orders`表结构和慢查询模式。
+        mysql -u${DB_ADMIN_USER} -p${DB_ADMIN_PASS} -h${DB_HOST} <<EOF
+        USE your_database;
+        -- 1. 查看表结构
+        DESC orders;
+        -- 2. 查看现有索引
+        SHOW INDEX FROM orders;
+        -- 3. 假设慢查询通常带有`WHERE user_id=?`和`ORDER BY create_time DESC`，添加复合索引
+        -- 请根据实际查询模式调整
+        ALTER TABLE orders ADD INDEX idx_user_create_time (user_id, create_time DESC);
+        -- 4. 禁止使用 SELECT *，优化查询为仅获取所需字段
+        -- 例如：SELECT id, order_no, amount FROM orders WHERE user_id = ? ORDER BY create_time DESC LIMIT 20;
+        EOF
+        ```
+    *   **步骤2：实施查询改造。**
+        *   **定位代码：** 在应用代码中全局搜索 `SELECT * FROM orders`。
+        *   **修改代码：**
+            *   将 `SELECT *` 改为明确指定的字段列表。
+            *   确保 `WHERE` 子句中的条件能够利用新创建的索引。
+            *   对于列表查询，**必须添加分页** (`LIMIT offset, size`)。
+        *   **提交与部署：** 将代码修改提交，并通过CI/CD管道部署至预发布环境进行验证。
+
+2.  **调整数据库连接池配置：**
+    *   **步骤：** 审查应用配置（如`application.yml`）。
+        ```yaml
+        # 示例: HikariCP 配置优化
+        spring:
+          datasource:
+            hikari:
+              maximum-pool-size: 20 # 根据数据库承受能力和应用需求调整，不宜过大
+              minimum-idle: 5
+              connection-timeout: 3000 # 连接获取超时时间(ms)，适当调低以快速失败
+              max-lifetime: 1800000 # 连接最大生命周期(ms)，防止连接老化
+              idle-timeout: 600000 # 连接空闲超时(ms)
+              leak-detection-threshold: 5000 # 泄漏检测阈值(ms)
+        ```
+    *   **说明：** 适当增加`maximum-pool-size`可缓解瞬时压力，但更重要的是优化SQL以减少连接占用时间。设置合理的超时和泄漏检测有助于快速释放问题连接。
+
+3.  **部署数据库慢查询监控与告警：**
+    *   **执行脚本（配置长期监控）：**
+        ```bash
+        # 在数据库服务器上，启用慢查询日志（如果未启用）
+        # MySQL示例：编辑my.cnf
+        cat >> /etc/mysql/my.cnf <<EOF
+        [mysqld]
+        slow_query_log = 1
+        slow_query_log_file = /var/log/mysql/mysql-slow.log
+        long_query_time = 2  # 将慢查询阈值设置为2秒
+        log_queries_not_using_indexes = 1
+        EOF
+        # 重启MySQL或重载配置
+        systemctl reload mysql
+        
+        # 配置日志轮转和监控 agent（如Filebeat）将慢查询日志发送至ELK或Prometheus进行可视化告警。
+        ```
+    *   **预期结果：** 任何执行超过2秒的查询都会被记录和告警，便于提前发现性能退化。
+
+4.  **实施应用层熔断与降级机制：**
+    *   **步骤：** 在应用代码或API网关中，为关键数据源（如数据库）操作集成熔断器（如Resilience4j）。
+        *   配置在数据库操作失败率或延迟达到阈值时，自动打开熔断器，快速失败，避免资源耗尽。
+        *   提供降级逻辑（如返回缓存数据、默认值或友好提示）。
+
+---
+
+## **三、 验证方法（如何确认问题已解决）**
+
+**目标：** 通过多维度指标确认系统已恢复正常，且修复措施有效。
+
+1.  **实时监控指标验证（修复后立即检查）：**
+    *   **执行脚本：**
+        ```bash
+        # 监控关键指标，持续观察5-10分钟
+        for i in {1..10}; do
+            echo "--- 第 $i 次采样 ---"
+            # 1. CPU & 内存
+            top -bn1 | grep "Cpu\|Mem\|java"
+            # 2. 磁盘I/O等待 (使用iostat，需安装sysstat)
+            iostat -dx 1 2 | grep -A1 Device | tail -n +2
+            # 3. 数据库连接池状态 (通过应用Actuator端点或JMX)
+            curl -s http://localhost:8080/actuator/metrics/hikaricp.connections.active | jq .
+            # 4. 服务健康检查
+            curl -f http://localhost:8080/health || echo "健康检查失败"
+            echo ""
+            sleep 30
+        done
+        ```
+    *   **成功标准：**
+        *   CPU使用率稳定在80%阈值以下，并呈下降趋势。
+        *   内存使用率停止增长，并稳定在安全范围。
+        *   磁盘I/O等待队列长度降至5以下。
+        *   数据库活跃连接数 (`hikaricp.connections.active`) 远小于最大连接池大小，且无堆积。
+        *   应用健康检查持续成功。
+
+2.  **业务功能与性能验证：**
+    *   **执行手动或自动化测试：**
+        *   触发之前有问题的订单查询功能。
+        *   使用`curl`或`ab`工具模拟请求，验证接口响应时间是否稳定在1秒以内。
+        ```bash
+        ab -n 100 -c 10 "http://your-service/api/orders?user_id=123"
+        ```
+    *   **成功标准：** 订单查询接口平均响应时间 < 1秒，且无错误。
+
+3.  **日志验证：**
+    *   **检查应用日志：** 观察修复后一段时间内，是否再次出现 `Database connection pool exhausted`、`Timeout waiting for connection` 或 `Slow query detected` 等错误/警告日志。
+    *   **成功标准：** 相关错误日志不再出现。
+
+---
+
+## **四、 回滚计划**
+
+如果修复措施（尤其是根本解决措施中的代码和配置变更）引入新问题，需立即回滚。
+
+1.  **回滚触发条件（满足任一即触发）：**
+    *   验证阶段发现核心业务功能失败。
+    *   监控指标显示系统出现新的、更严重的异常（如错误率飙升、所有请求超时）。
+    *   优化后的SQL查询结果不正确。
+
+2.  **回滚步骤：**
+    *   **步骤1：回滚代码部署。**
+        ```bash
+        # 假设使用Git和K8s
+        # 1. 应用代码回滚至上个稳定版本
+        kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${IMAGE_REGISTRY}/your-app:previous-stable-tag
+        kubectl rollout status deployment/${DEPLOYMENT_NAME}
+        ```
+    *   **步骤2：回滚数据库变更。**
+        ```bash
+        # **谨慎操作！** 仅当索引优化导致问题时才需要。
+        mysql -u${DB_ADMIN_USER} -p${DB_ADMIN_PASS} -h${DB_HOST} -e "USE your_database; DROP INDEX idx_user_create_time ON orders;"
+        echo "数据库索引已回滚。"
+        ```
+    *   **步骤3：恢复连接池配置。**
+        *   将`application.yml`中的连接池配置恢复至修改前的值，并重新部署应用。
+crewai : 好的，作为自动化修复专家，我已整合监控与日志分析报告，完成综合诊断。现在，我将制定一份详细、可执行的修复方案。
+所在位置 行:1 字符: 1
++ crewai run 2>&1 | Out-File -FilePath error.txt -Encoding utf8
++ ~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (好的，作为自动化修复专家，我已...定一份详细、可执行的修复方案。:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+# **故障修复方案**
+
+**故障诊断结论：**
+本次故障的根本原因是**低效SQL查询（`SELECT * FROM orders`全表扫描）**。该查询长时间占用数据库连接与服务器资源（CPU、磁盘I/O），导致数据库连接池快速耗尽，引发应用服务性能严重下降、错误频发的级联故障。所有监控指标异常（高CPU、高内存
+、高磁盘I/O、高响应时间）均为此根因的直接或间接表现。
+
+---
+
+## **一、 立即缓解措施（快速恢复服务）**
+
+**目标：** 在5-15分钟内，快速降低系统负载，恢复服务基本可用性，为根本解决争取时间。
+**核心思路：** 终止问题进程、临时扩容、分流负载。
+
+### **操作步骤：**
+
+1.  **识别并终止罪魁祸首进程（首要行动）：**
+    *   **执行脚本：**
+        ```bash
+        # 1. 在数据库服务器上，查找当前正在执行的慢查询，特别是涉及`orders`表的。
+        # 以MySQL为例：
+        mysql -u${DB_ADMIN_USER} -p${DB_ADMIN_PASS} -h${DB_HOST} -e "SHOW FULL PROCESSLIST;" | grep -i orders | awk '{print "KILL", $1
+";"}' > /tmp/kill_slow_queries.sql
+        
+        # 2. 如果找到慢查询，终止它们。执行前请确认，避免误杀重要业务查询。
+        if [ -s /tmp/kill_slow_queries.sql ]; then
+            echo "发现慢查询，准备终止..."
+            mysql -u${DB_ADMIN_USER} -p${DB_ADMIN_PASS} -h${DB_HOST} < /tmp/kill_slow_queries.sql
+            echo "慢查询已终止。"
+        else
+            echo "未发现正在执行的涉及orders表的慢查询。"
+        fi
+        
+        # 3. 在应用服务器上，查找占用CPU/内存最高的Java进程（假设为Java应用）。
+        PID=$(top -bn1 | grep java | head -1 | awk '{print $1}')
+        if [ ! -z "$PID" ]; then
+            # 发送SIGTERM信号，允许进程优雅关闭
+            kill -15 $PID
+            sleep 10
+            # 如果进程仍在，强制终止
+            if ps -p $PID > /dev/null; then
+                kill -9 $PID
+                echo "已强制终止应用进程PID: $PID"
+            fi
+        fi
+        ```
+    *   **预期结果：** 数据库服务器CPU和磁盘I/O负载应迅速下降。应用服务器负载随之缓解。连接池压力减轻。
+
+2.  **临时扩容应用实例（横向扩展）：**
+    *   **执行脚本（以K8s为例）：**
+        ```bash
+        # 将当前应用部署的副本数临时增加，以分担负载。
+        DEPLOYMENT_NAME="your-application-deployment"
+        CURRENT_REPLICAS=$(kubectl get deployment $DEPLOYMENT_NAME -o=jsonpath='{.spec.replicas}')
+        TARGET_REPLICAS=$((CURRENT_REPLICAS + 2)) # 假设增加2个副本
+        
+        kubectl scale deployment $DEPLOYMENT_NAME --replicas=$TARGET_REPLICAS
+        
+        echo "应用副本数已从 $CURRENT_REPLICAS 扩容至 $TARGET_REPLICAS。"
+        # 等待Pod就绪
+        kubectl rollout status deployment/$DEPLOYMENT_NAME --timeout=300s
+        ```
+    *   **预期结果：** 用户请求被分摊到更多应用实例上，每个实例的连接池压力减小，整体服务响应时间改善。
+
+3.  **启用负载均衡器或API网关的降级/熔断规则（如有）：**
+    *   **执行动作：** 如果配置了Sentinel、Hystrix或网关熔断规则，立即启用针对`/api/orders`或类似疑似触发慢查询接口的**熔断策略**，快速失败并返回默认响应，防止单个接口拖垮整个服务。
+    *   **预期结果：** 问题接口的流量被快速拒绝，保护系统其他部分。
+
+---
+
+## **二、 根本解决措施（防止再次发生）**
+
+**目标：** 彻底修复导致性能问题的根本原因，并优化系统健壮性。
+
+### **操作步骤：**
+
+1.  **优化问题SQL语句与数据库：**
+    *   **步骤1：分析并创建索引。**
+        ```bash
+        # 连接到数据库，分析`orders`表结构和慢查询模式。
+        mysql -u${DB_ADMIN_USER} -p${DB_ADMIN_PASS} -h${DB_HOST} <<EOF
+        USE your_database;
+        -- 1. 查看表结构
+        DESC orders;
+        -- 2. 查看现有索引
+        SHOW INDEX FROM orders;
+        -- 3. 假设慢查询通常带有`WHERE user_id=?`和`ORDER BY create_time DESC`，添加复合索引
+        -- 请根据实际查询模式调整
+        ALTER TABLE orders ADD INDEX idx_user_create_time (user_id, create_time DESC);
+        -- 4. 禁止使用 SELECT *，优化查询为仅获取所需字段
+        -- 例如：SELECT id, order_no, amount FROM orders WHERE user_id = ? ORDER BY create_time DESC LIMIT 20;
+        EOF
+        ```
+    *   **步骤2：实施查询改造。**
+        *   **定位代码：** 在应用代码中全局搜索 `SELECT * FROM orders`。
+        *   **修改代码：**
+            *   将 `SELECT *` 改为明确指定的字段列表。
+            *   确保 `WHERE` 子句中的条件能够利用新创建的索引。
+            *   对于列表查询，**必须添加分页** (`LIMIT offset, size`)。
+        *   **提交与部署：** 将代码修改提交，并通过CI/CD管道部署至预发布环境进行验证。
+
+2.  **调整数据库连接池配置：**
+    *   **步骤：** 审查应用配置（如`application.yml`）。
+        ```yaml
+        # 示例: HikariCP 配置优化
+        spring:
+          datasource:
+            hikari:
+              maximum-pool-size: 20 # 根据数据库承受能力和应用需求调整，不宜过大
+              minimum-idle: 5
+              connection-timeout: 3000 # 连接获取超时时间(ms)，适当调低以快速失败
+              max-lifetime: 1800000 # 连接最大生命周期(ms)，防止连接老化
+              idle-timeout: 600000 # 连接空闲超时(ms)
+              leak-detection-threshold: 5000 # 泄漏检测阈值(ms)
+        ```
+    *   **说明：** 适当增加`maximum-pool-size`可缓解瞬时压力，但更重要的是优化SQL以减少连接占用时间。设置合理的超时和泄漏检测有助于快速释放问题连接。
+
+3.  **部署数据库慢查询监控与告警：**
+    *   **执行脚本（配置长期监控）：**
+        ```bash
+        # 在数据库服务器上，启用慢查询日志（如果未启用）
+        # MySQL示例：编辑my.cnf
+        cat >> /etc/mysql/my.cnf <<EOF
+        [mysqld]
+        slow_query_log = 1
+        slow_query_log_file = /var/log/mysql/mysql-slow.log
+        long_query_time = 2  # 将慢查询阈值设置为2秒
+        log_queries_not_using_indexes = 1
+        EOF
+        # 重启MySQL或重载配置
+        systemctl reload mysql
+        
+        # 配置日志轮转和监控 agent（如Filebeat）将慢查询日志发送至ELK或Prometheus进行可视化告警。
+        ```
+    *   **预期结果：** 任何执行超过2秒的查询都会被记录和告警，便于提前发现性能退化。
+
+4.  **实施应用层熔断与降级机制：**
+    *   **步骤：** 在应用代码或API网关中，为关键数据源（如数据库）操作集成熔断器（如Resilience4j）。
+        *   配置在数据库操作失败率或延迟达到阈值时，自动打开熔断器，快速失败，避免资源耗尽。
+        *   提供降级逻辑（如返回缓存数据、默认值或友好提示）。
+
+---
+
+## **三、 验证方法（如何确认问题已解决）**
+
+**目标：** 通过多维度指标确认系统已恢复正常，且修复措施有效。
+
+1.  **实时监控指标验证（修复后立即检查）：**
+    *   **执行脚本：**
+        ```bash
+        # 监控关键指标，持续观察5-10分钟
+        for i in {1..10}; do
+            echo "--- 第 $i 次采样 ---"
+            # 1. CPU & 内存
+            top -bn1 | grep "Cpu\|Mem\|java"
+            # 2. 磁盘I/O等待 (使用iostat，需安装sysstat)
+            iostat -dx 1 2 | grep -A1 Device | tail -n +2
+            # 3. 数据库连接池状态 (通过应用Actuator端点或JMX)
+            curl -s http://localhost:8080/actuator/metrics/hikaricp.connections.active | jq .
+            # 4. 服务健康检查
+            curl -f http://localhost:8080/health || echo "健康检查失败"
+            echo ""
+            sleep 30
+        done
+        ```
+    *   **成功标准：**
+        *   CPU使用率稳定在80%阈值以下，并呈下降趋势。
+        *   内存使用率停止增长，并稳定在安全范围。
+        *   磁盘I/O等待队列长度降至5以下。
+        *   数据库活跃连接数 (`hikaricp.connections.active`) 远小于最大连接池大小，且无堆积。
+        *   应用健康检查持续成功。
+    *   **步骤4：重新实施“立即缓解措施”。**
+        *   如果回滚后问题复现，立即执行第一部分中的“终止进程”和“临时扩容”步骤，以维持服务可用性，并重新评估根本原因。
+
+---
+**方案总结：**
+
+2.  **业务功能与性能验证：**
+    *   **执行手动或自动化测试：**
+        *   触发之前有问题的订单查询功能。
+        *   使用`curl`或`ab`工具模拟请求，验证接口响应时间是否稳定在1秒以内。
+        ```bash
+        ab -n 100 -c 10 "http://your-service/api/orders?user_id=123"
+        ```
+    *   **成功标准：** 订单查询接口平均响应时间 < 1秒，且无错误。
+
+3.  **日志验证：**
+    *   **检查应用日志：** 观察修复后一段时间内，是否再次出现 `Database connection pool exhausted`、`Timeout waiting for connection` 或 `Slow query detected` 等错
+误/警告日志。
+    *   **成功标准：** 相关错误日志不再出现。
+
+---
+
+## **四、 回滚计划**
+
+如果修复措施（尤其是根本解决措施中的代码和配置变更）引入新问题，需立即回滚。
+
+1.  **回滚触发条件（满足任一即触发）：**
+    *   验证阶段发现核心业务功能失败。
+    *   监控指标显示系统出现新的、更严重的异常（如错误率飙升、所有请求超时）。
+    *   优化后的SQL查询结果不正确。
+
+2.  **回滚步骤：**
+    *   **步骤1：回滚代码部署。**
+        ```bash
+        # 假设使用Git和K8s
+        # 1. 应用代码回滚至上个稳定版本
+        kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${IMAGE_REGISTRY}/your-app:previous-stable-tag
+        kubectl rollout status deployment/${DEPLOYMENT_NAME}
+        ```
+    *   **步骤2：回滚数据库变更。**
+        ```bash
+        # **谨慎操作！** 仅当索引优化导致问题时才需要。
+        mysql -u${DB_ADMIN_USER} -p${DB_ADMIN_PASS} -h${DB_HOST} -e "USE your_database; DROP INDEX idx_user_create_time ON orders;"
+        echo "数据库索引已回滚。"
+        ```
+    *   **步骤3：恢复连接池配置。**
+        *   将`application.yml`中的连接池配置恢复至修改前的值，并重新部署应用。
+    *   **步骤4：重新实施“立即缓解措施”。**
+        *   如果回滚后问题复现，立即执行第一部分中的“终止进程”和“临时扩容”步骤，以维持服务可用性，并重新评估根本原因。
+
+---
+**方案总结：**
+本方案遵循“先止血、再治病、后康复”的原则。**立即执行缓解措施**以快速恢复服务；随后**分步实施根本解决措施**，重点优化问题SQL和系统配置；最后通过**多维验证**确保问题彻底解决。同时，完备的**回滚计划**确保了修复过程的风险可控。请根据实际环境变量替换脚
+本中的 `${DB_ADMIN_USER}`, `${DEPLOYMENT_NAME}` 等占位符。
+本方案遵循“先止血、再治病、后康复”的原则。**立即执行缓解措施**以快速恢复服务；随后**分步实施根本解决措施**，重点优化问题SQL和系统配置；最后通过**多维验证**确保问题彻底解决。同时，完备的**回滚计划**确保了修复过程的风险可控。请根据实际环境变量替换脚本中的 `${DB_ADMIN_USER}`, `${DEPLOYMENT_NAME}` 等占位符。
+An error occurred while running the crew: Command '['uv', 'run', 'run_crew']' returned non-zero exit status 1.

@@ -1,0 +1,206 @@
+﻿Running the Crew
++-------------------------[CrewAIEventsBus] Sync handler error in on_crew_started: 'gbk' codec can't 
+encode character '\U0001f680' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_task_started: 'gbk' codec can't 
+encode character '\U0001f680' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_agent_logs_started: 'gbk' codec 
+can't encode character '\U0001f680' in position 1: illegal multibyte sequence
+crewai : ERROR:root:OpenAI API call failed: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'un
+known_error', 'param': None, 'code': 'invalid_request_error'}}
+所在位置 行:1 字符: 1
++ crewai run 2>&1 | Out-File -FilePath error.log -Encoding utf8
++ ~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR:root:Open...equest_error'}}:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ERROR:root:OpenAI API call failed: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_err
+or', 'param': None, 'code': 'invalid_request_error'}}
++-[------------------------------CrewAIEventsBus][CrewAIEventsBus Warning: Event pairing mismatch. 'llm_call_failed' closed 
+] Sync handler error in on_llm_call_failed: 'agent_execution_started''gbk' codec can't 
+encode character  (expected '\u274c' in position 'llm_call_started'1: illegal multibyte sequence
+)
+[91mAn unknown error occurred. Please check the details below.[0m
+[91mError details: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_error', 'param': None, 'code': 'invalid_request_error'}}[0m
+[91mAn unknown error occurred. Please check the details below.[0m
+[91mError details: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_error', 'param': None, 'code': 'invalid_request_error'}}[0m
++-------------------------[CrewAIEventsBus] Sync handler error in on_llm_call_failed: 'gbk' codec can't 
+encode character '\U0001f680' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_agent_logs_started: 'gbk' codec 
+can't encode character '\U0001f680' in position 1: illegal multibyte sequence
+ERROR:root:OpenAI API call failed: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_err
+or', 'param': None, 'code': 'invalid_request_error'}}
+ERROR:root:OpenAI API call failed: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_err
+or', 'param': None, 'code': 'invalid_request_error'}}
++-[CrewAIEventsBus------------------------------] Warning: Event pairing mismatch. 'llm_call_failed' closed 
+'agent_execution_started' (expected ['llm_call_started'CrewAIEventsBus)]
+[91mAn unknown error occurred. Please check the details below.[0m
+[91mError details: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_error', 'param': None, 'code': 'invalid_request_error'}}[0m
+[91mAn unknown error occurred. Please check the details below.[0m
+[91mError details: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_error', 'param': None, 'code': 'invalid_request_error'}}[0m
++- Sync handler error in on_llm_call_failed: 'gbk' codec can't 
+encode character ------------------------'\u274c' in position 1: illegal multibyte sequence
+[CrewAIEventsBus] Sync handler error in on_llm_call_failed: 'gbk' codec can't 
+encode character '\U0001f680' in position 1: illegal multibyte sequence
++-------------------------[CrewAIEventsBus] Sync handler error in on_agent_logs_started: 'gbk' codec 
+can't encode character '\U0001f680' in position 1: illegal multibyte sequence
+ERROR:root:OpenAI API call failed: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_err
+or', 'param': None, 'code': 'invalid_request_error'}}
+ERROR:root:OpenAI API call failed: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_err
+or', 'param': None, 'code': 'invalid_request_error'}}
++-[------------------------------CrewAIEventsBus][ Warning: Event pairing mismatch. CrewAIEventsBus'llm_call_failed'] closed 
+ Sync handler error in on_llm_call_failed: 'agent_execution_started''gbk'  codec can't 
+encode character ('\u274c' in position expected 1'llm_call_started': illegal multibyte sequence
+)
+[91mAn unknown error occurred. Please check the details below.[0m
+[91mError details: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_error', 'param': None, 'code': 'invalid_request_error'}}[0m
+[91mAn unknown error occurred. Please check the details below.[0m
+[91mError details: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_error', 'param': None, 'code': 'invalid_request_error'}}[0m
+[CrewAIEventsBus+-]------------------------ Warning: Event pairing mismatch. 'agent_execution_error'[ 
+closed 'task_started' CrewAIEventsBus(expected 'agent_execution_started')]
+ Sync handler error in on_llm_call_failed: ['gbk' codec can't 
+encode character CrewAIEventsBus'\U0001f680' in position ]1: illegal multibyte sequence
+ Warning: Event pairing mismatch. 'task_failed' closed 
+'crew_kickoff_started' (expected 'task_started')
++-------------------------------[CrewAIEventsBus] Sync handler error in on_task_failed: 'gbk' codec can't 
+encode character '\u274c' in position 1: illegal multibyte sequence
+[CrewAIEventsBus] Warning: Ending event 'crew_kickoff_failed' emitted with 
+empty scope stack. Missing starting event?
++-------------------------[CrewAIEventsBus] Sync handler error in on_crew_failed: 'gbk' codec can't 
+encode character '\U0001f680' in position 1: illegal multibyte sequence
+Traceback (most recent call last):
+  File "E:\multi-agent-dev-ops\my_first_crew\src\my_first_crew\main.py", line 26, in run
+    MyFirstCrew().crew().kickoff(inputs=inputs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\crew.py", line 743, in kickoff
+    result = self._run_sequential_process()
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\crew.py", line 1150, in _run_sequential_pro
+cess
+    return self._execute_tasks(self.tasks)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\crew.py", line 1236, in _execute_tasks
+    task_output = task.execute_sync(
+        agent=exec_data.agent,
+        context=context,
+        tools=exec_data.tools,
+    )
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\task.py", line 499, in execute_sync
+    return self._execute_core(agent, context, tools)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\task.py", line 740, in _execute_core
+    raise e  # Re-raise the exception after emitting the event
+    ^^^^^^^
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\task.py", line 671, in _execute_core
+    result = agent.execute_task(
+        task=self,
+        context=context,
+        tools=tools,
+    )
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\agent\core.py", line 493, in execute_task
+    result = self.execute_task(task, context, tools)
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\agent\core.py", line 493, in execute_task
+    result = self.execute_task(task, context, tools)
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\agent\core.py", line 492, in execute_task
+    raise e
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\agent\core.py", line 459, in execute_task
+    result = self._execute_without_timeout(task_prompt, task)
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\agent\core.py", line 568, in _execute_witho
+ut_timeout
+    return self.agent_executor.invoke(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        {
+        ^
+    ...<4 lines>...
+        }
+        ^
+    )["output"]
+    ^
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 207, i
+n invoke
+    formatted_answer = self._invoke_loop()
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 308, i
+n _invoke_loop
+    return self._invoke_loop_react()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 442, i
+n _invoke_loop_react
+    raise e
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 337, i
+n _invoke_loop_react
+    answer = get_llm_response(
+        llm=self.llm,
+    ...<7 lines>...
+        verbose=self.agent.verbose,
+    )
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\utilities\agent_utils.py", line 372, in get
+_llm_response
+    raise e
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\utilities\agent_utils.py", line 362, in get
+_llm_response
+    answer = llm.call(
+        messages,
+    ...<5 lines>...
+        response_model=response_model,
+    )
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\llms\providers\openai\completion.py", line 
+410, in call
+    return self._call_completions(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        messages=formatted_messages,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        response_model=response_model,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\llms\providers\openai\completion.py", line 
+450, in _call_completions
+    return self._handle_completion(
+           ~~~~~~~~~~~~~~~~~~~~~~~^
+        params=completion_params,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        response_model=response_model,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\llms\providers\openai\completion.py", line 
+1687, in _handle_completion
+    raise e from e
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\crewai\llms\providers\openai\completion.py", line 
+1585, in _handle_completion
+    response: ChatCompletion = self.client.chat.completions.create(**params)
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\openai\_utils\_utils.py", line 287, in wrapper
+    return func(*args, **kwargs)
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\openai\resources\chat\completions\completions.py",
+ line 925, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/chat/completions",
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<43 lines>...
+        stream_cls=Stream[ChatCompletionChunk],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\openai\_base_client.py", line 1242, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Lib\site-packages\openai\_base_client.py", line 1037, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.APIStatusError: Error code: 402 - {'error': {'message': 'Insufficient Balance', 'type': 'unknown_error', 'param'
+: None, 'code': 'invalid_request_error'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "E:\multi-agent-dev-ops\my_first_crew\.venv\Scripts\run_crew.exe\__main__.py", line 10, in <module>
+    sys.exit(run())
+             ~~~^^
+  File "E:\multi-agent-dev-ops\my_first_crew\src\my_first_crew\main.py", line 28, in run
+    raise Exception(f"An error occurred while running the crew: {e}")
+Exception: An error occurred while running the crew: Error code: 402 - {'error': {'message': 'Insufficient Balance', 't
+ype': 'unknown_error', 'param': None, 'code': 'invalid_request_error'}}
+An error occurred while running the crew: Command '['uv', 'run', 'run_crew']' returned non-zero exit status 1.

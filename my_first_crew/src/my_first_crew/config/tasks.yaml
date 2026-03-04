@@ -1,0 +1,72 @@
+monitor_task:
+  description: >
+    分析系统监控指标，检测异常情况。
+    
+    当前监控数据：
+    - CPU 使用率: 92%
+    - 内存使用率: 88%
+    - 磁盘 IO: 等待队列长度 15
+    - 网络连接数: 超出正常范围30%
+    - 服务响应时间: 平均 2.3秒 (正常 < 1秒)
+    
+    请分析这些指标，找出明显的异常点，并描述可能的原因。
+  expected_output: >
+    一份监控分析报告，包含：
+    1. 检测到的异常指标列表
+    2. 每个异常的严重程度（高/中/低）
+    3. 初步的可能原因推测
+  agent: monitor_agent
+
+log_analysis_task:
+  description: >
+    分析应用程序日志，查找错误和异常模式。
+    
+    日志片段：
+    [ERROR] 2026-03-04 10:23:45 - Database connection pool exhausted
+    [ERROR] 2026-03-04 10:23:46 - Timeout waiting for connection from pool
+    [WARN] 2026-03-04 10:23:50 - Slow query detected: SELECT * FROM orders (took 12.3s)
+    [ERROR] 2026-03-04 10:24:01 - Failed to execute query: connection reset by peer
+    [ERROR] 2026-03-04 10:24:15 - Database connection pool exhausted
+    
+    请分析这些日志，找出：
+    1. 主要的错误类型和频率
+    2. 错误之间的关联性
+    3. 可能指向的根因
+  expected_output: >
+    一份日志分析报告，包含：
+    1. 错误模式总结
+    2. 时间线分析
+    3. 关键线索提取
+  agent: log_analyzer_agent
+
+diagnosis_task:
+  description: >
+    综合监控指标和日志分析结果，进行最终故障诊断。
+    
+    请基于之前的监控分析和日志分析结果，给出诊断结论。
+    
+    要求：
+    1. 最可能的根因（并解释为什么）
+    2. 其他可能原因（备选假设）
+    3. 需要哪些额外信息来确认诊断
+  expected_output: >
+    一份完整的诊断报告，包含：
+    1. 根因分析结论
+    2. 置信度评估（高/中/低）
+    3. 诊断推理过程
+  agent: diagnosis_agent
+
+remediation_task:
+  description: >
+    根据诊断结果，制定并执行修复方案。
+    
+    请基于诊断结论，制定详细的修复方案。
+    
+    要求包括：
+    1. 立即缓解措施（快速恢复服务）
+    2. 根本解决措施（防止再次发生）
+    3. 验证方法（如何确认问题已解决）
+  expected_output: >
+    一份完整的修复方案，包含具体操作步骤、预期结果和回滚计划
+  agent: remediation_agent
+  output_file: remediation_plan.md  
