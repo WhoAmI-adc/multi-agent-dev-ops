@@ -1,568 +1,559 @@
 """
-工具模块单元测试
+多智能体框架单元测试
 
-测试 DevOps Crew 中所有工具的基本功能，无需 LLM API 即可运行。
+测试自研多智能体框架的核心组件，无需 LLM API 即可运行。
 """
 
-import json
 import sys
 import os
 import pytest
+from datetime import datetime
+from unittest.mock import patch, MagicMock
 
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-# ==================== Docker 工具测试 ====================
-
-class TestDockerTools:
-    """测试 Docker 工具模块"""
-
-    def test_list_containers_all(self):
-        """测试列出所有容器"""
-        from devops_crew.tools.docker_tools import list_containers
-        result = list_containers.run("all")
-        data = json.loads(result)
-
-        assert "total" in data
-        assert "containers" in data
-        assert data["total"] > 0
-        assert isinstance(data["containers"], list)
-
-    def test_list_containers_running(self):
-        """测试列出运行中的容器"""
-        from devops_crew.tools.docker_tools import list_containers
-        result = list_containers.run("running")
-        data = json.loads(result)
-
-        assert "containers" in data
-        for container in data["containers"]:
-            assert container["status"] == "running"
-
-    def test_get_container_status_existing(self):
-        """测试获取存在的容器状态"""
-        from devops_crew.tools.docker_tools import get_container_status
-        result = get_container_status.run("web-frontend")
-        data = json.loads(result)
-
-        assert "name" in data
-        assert data["name"] == "web-frontend"
-        assert "status" in data
-        assert "resources" in data
-
-    def test_get_container_status_not_found(self):
-        """测试获取不存在的容器状态"""
-        from devops_crew.tools.docker_tools import get_container_status
-        result = get_container_status.run("nonexistent-container")
-        data = json.loads(result)
-
-        assert "error" in data
-
-    def test_restart_container(self):
-        """测试重启容器"""
-        from devops_crew.tools.docker_tools import restart_container
-        result = restart_container.run("web-frontend", 30)
-        data = json.loads(result)
-
-        assert "success" in data
-        assert data["success"] is True
-        assert "actions" in data
-        assert len(data["actions"]) > 0
-
-    def test_get_container_logs(self):
-        """测试获取容器日志"""
-        from devops_crew.tools.docker_tools import get_container_logs
-        result = get_container_logs.run("api-server", 10, None, None)
-        data = json.loads(result)
-
-        assert "container_name" in data
-        assert "logs" in data
-        assert isinstance(data["logs"], list)
-
-    def test_get_container_logs_with_filter(self):
-        """测试按级别过滤容器日志"""
-        from devops_crew.tools.docker_tools import get_container_logs
-        result = get_container_logs.run("api-server", 50, None, "ERROR")
-        data = json.loads(result)
-
-        assert "logs" in data
-        for log in data["logs"]:
-            assert "ERROR" in log
-
-    def test_build_image(self):
-        """测试构建 Docker 镜像"""
-        from devops_crew.tools.docker_tools import build_image
-        result = build_image.run("my-app", "v1.0.0", ".", None)
-        data = json.loads(result)
-
-        assert "success" in data
-        assert data["success"] is True
-        assert "image_name" in data
-        assert "my-app:v1.0.0" in data["image_name"]
-
-
-# ==================== 日志工具测试 ====================
-
-class TestLogTools:
-    """测试日志分析工具模块"""
-
-    def test_search_logs_basic(self):
-        """测试基本日志搜索"""
-        from devops_crew.tools.log_tools import search_logs
-        result = search_logs.run("connection pool", None, None, None, 10)
-        data = json.loads(result)
-
-        assert "keyword" in data
-        assert "results" in data
-        assert data["total_found"] > 0
-
-    def test_search_logs_with_service(self):
-        """测试按服务过滤搜索"""
-        from devops_crew.tools.log_tools import search_logs
-        result = search_logs.run("connection", "api-server", None, None, 20)
-        data = json.loads(result)
-
-        assert data["service_filter"] == "api-server"
-        for entry in data["results"]:
-            assert entry["service"] == "api-server"
-
-    def test_search_logs_no_results(self):
-        """测试搜索无结果的情况"""
-        from devops_crew.tools.log_tools import search_logs
-        result = search_logs.run("xyzzy_nonexistent_pattern_12345", None, None, None, 10)
-        data = json.loads(result)
-
-        assert data["total_found"] == 0
-        assert data["results"] == []
-
-    def test_analyze_errors(self):
-        """测试错误日志分析"""
-        from devops_crew.tools.log_tools import analyze_errors
-        result = analyze_errors.run(None, 30)
-        data = json.loads(result)
-
-        assert "summary" in data
-        assert "error_patterns" in data
-        assert "root_cause_hints" in data
-        assert "service_breakdown" in data
-
-    def test_analyze_errors_for_service(self):
-        """测试针对特定服务的错误分析"""
-        from devops_crew.tools.log_tools import analyze_errors
-        result = analyze_errors.run("api-server", 30)
-        data = json.loads(result)
-
-        assert data["service_filter"] == "api-server"
-
-    def test_get_log_statistics(self):
-        """测试日志统计"""
-        from devops_crew.tools.log_tools import get_log_statistics
-        result = get_log_statistics.run(None, "service")
-        data = json.loads(result)
-
-        assert "total_log_entries" in data
-        assert "by_level" in data
-        assert "error_rate" in data
-        assert "health_score" in data
-        assert "score" in data["health_score"]
-
-    def test_filter_by_level_error(self):
-        """测试按 ERROR 级别过滤"""
-        from devops_crew.tools.log_tools import filter_by_level
-        result = filter_by_level.run("ERROR", None, 50)
-        data = json.loads(result)
-
-        assert "entries" in data
-        for entry in data["entries"]:
-            assert entry["level"] in ("ERROR",)
-
-    def test_filter_by_level_warn(self):
-        """测试按 WARN 级别过滤（包含更高级别）"""
-        from devops_crew.tools.log_tools import filter_by_level
-        result = filter_by_level.run("WARN", None, 50)
-        data = json.loads(result)
-
-        assert "entries" in data
-        for entry in data["entries"]:
-            assert entry["level"] in ("WARN", "ERROR", "CRITICAL")
-
-
-# ==================== 监控工具测试 ====================
-
-class TestMonitorTools:
-    """测试系统监控工具模块"""
-
-    def test_get_cpu_usage_all_nodes(self):
-        """测试获取所有节点 CPU 使用率"""
-        from devops_crew.tools.monitor_tools import get_cpu_usage
-        result = get_cpu_usage.run(None)
-        data = json.loads(result)
-
-        assert "nodes" in data
-        assert len(data["nodes"]) > 0
-        for node in data["nodes"]:
-            assert "cpu_percent" in node
-            assert 0 <= node["cpu_percent"] <= 100
-
-    def test_get_cpu_usage_specific_node(self):
-        """测试获取特定节点 CPU 使用率"""
-        from devops_crew.tools.monitor_tools import get_cpu_usage
-        result = get_cpu_usage.run("node-1")
-        data = json.loads(result)
-
-        assert data["node"] == "node-1"
-        assert "cpu_percent" in data
-        assert "load_average" in data
-
-    def test_get_cpu_usage_invalid_node(self):
-        """测试获取不存在节点的 CPU 使用率"""
-        from devops_crew.tools.monitor_tools import get_cpu_usage
-        result = get_cpu_usage.run("node-999")
-        data = json.loads(result)
-
-        assert "error" in data
-
-    def test_get_memory_usage(self):
-        """测试获取内存使用率"""
-        from devops_crew.tools.monitor_tools import get_memory_usage
-        result = get_memory_usage.run(None)
-        data = json.loads(result)
-
-        assert "nodes" in data
-        for node in data["nodes"]:
-            assert "percent" in node
-            assert 0 <= node["percent"] <= 100
-
-    def test_get_disk_usage(self):
-        """测试获取磁盘使用率"""
-        from devops_crew.tools.monitor_tools import get_disk_usage
-        result = get_disk_usage.run(None)
-        data = json.loads(result)
-
-        assert "nodes" in data
-        for node in data["nodes"]:
-            assert "percent" in node
-
-    def test_check_service_health_all(self):
-        """测试检查所有服务健康状态"""
-        from devops_crew.tools.monitor_tools import check_service_health
-        result = check_service_health.run(None)
-        data = json.loads(result)
-
-        assert "summary" in data
-        assert "services" in data
-        assert "total" in data["summary"]
-        assert data["summary"]["total"] > 0
-
-    def test_check_service_health_specific(self):
-        """测试检查特定服务健康状态"""
-        from devops_crew.tools.monitor_tools import check_service_health
-        result = check_service_health.run("api-server")
-        data = json.loads(result)
-
-        assert data["service"] == "api-server"
-        assert "status" in data
-        assert "health_details" in data
-
-    def test_get_alerts_all(self):
-        """测试获取所有告警"""
-        from devops_crew.tools.monitor_tools import get_alerts
-        result = get_alerts.run(None, None, "firing")
-        data = json.loads(result)
-
-        assert "total_alerts" in data
-        assert "alerts" in data
-        assert data["total_alerts"] > 0
-
-    def test_get_alerts_critical_only(self):
-        """测试只获取紧急告警"""
-        from devops_crew.tools.monitor_tools import get_alerts
-        result = get_alerts.run("critical", None, "firing")
-        data = json.loads(result)
-
-        assert "alerts" in data
-        for alert in data["alerts"]:
-            assert alert["severity"] == "critical"
-
-
-# ==================== Git 工具测试 ====================
-
-class TestGitTools:
-    """测试 Git 版本控制工具模块"""
-
-    def test_get_latest_commits(self):
-        """测试获取最新提交记录"""
-        from devops_crew.tools.git_tools import get_latest_commits
-        result = get_latest_commits.run("main", 3)
-        data = json.loads(result)
-
-        assert "commits" in data
-        assert len(data["commits"]) <= 3
-        for commit in data["commits"]:
-            assert "sha" in commit
-            assert "message" in commit
-            assert "author" in commit
-
-    def test_get_latest_commits_invalid_branch(self):
-        """测试获取不存在分支的提交"""
-        from devops_crew.tools.git_tools import get_latest_commits
-        result = get_latest_commits.run("nonexistent-branch", 5)
-        data = json.loads(result)
-
-        assert "error" in data
-
-    def test_create_branch(self):
-        """测试创建新分支"""
-        from devops_crew.tools.git_tools import create_branch
-        result = create_branch.run("feature/test-feature", "main", "测试分支")
-        data = json.loads(result)
-
-        assert "success" in data
-        assert data["success"] is True
-        assert data["branch_name"] == "feature/test-feature"
-
-    def test_create_branch_invalid_name(self):
-        """测试创建含非法字符的分支"""
-        from devops_crew.tools.git_tools import create_branch
-        result = create_branch.run("feature/test branch with spaces", "main", None)
-        data = json.loads(result)
-
-        assert data["success"] is False
-        assert "error" in data
-
-    def test_merge_branch_protected(self):
-        """测试合并到受保护分支（应拒绝）"""
-        from devops_crew.tools.git_tools import merge_branch
-        result = merge_branch.run("develop", "main", None)
-        data = json.loads(result)
-
-        # main 分支受保护，应拒绝直接合并
-        assert data["success"] is False
-
-    def test_merge_branch_unprotected(self):
-        """测试合并到非受保护分支"""
-        from devops_crew.tools.git_tools import merge_branch
-        result = merge_branch.run("feature/db-optimization", "develop", "合并数据库优化")
-        data = json.loads(result)
-
-        assert data["success"] is True
-
-    def test_get_commit_history(self):
-        """测试获取提交历史"""
-        from devops_crew.tools.git_tools import get_commit_history
-        result = get_commit_history.run("main", None, 7, 1, 5)
-        data = json.loads(result)
-
-        assert "commits" in data
-        assert "pagination" in data
-        assert "statistics" in data
-
-    def test_get_diff_by_commit(self):
-        """测试获取提交的代码差异"""
-        from devops_crew.tools.git_tools import get_diff
-        result = get_diff.run("a1b2c3d", None, "main", None)
-        data = json.loads(result)
-
-        assert "commit" in data
-        assert "diff" in data
-
-
-# ==================== Kubernetes 工具测试 ====================
-
-class TestKubernetesTools:
-    """测试 Kubernetes 集群操作工具模块"""
-
-    def test_list_pods_all(self):
-        """测试列出所有 Pod"""
-        from devops_crew.tools.kubernetes_tools import list_pods
-        result = list_pods.run("production", None, None)
-        data = json.loads(result)
-
-        assert "pods" in data
-        assert "total_pods" in data
-        assert data["total_pods"] > 0
-
-    def test_list_pods_by_deployment(self):
-        """测试按 Deployment 过滤 Pod"""
-        from devops_crew.tools.kubernetes_tools import list_pods
-        result = list_pods.run("production", "api-server", None)
-        data = json.loads(result)
-
-        assert "pods" in data
-        for pod in data["pods"]:
-            assert pod["deployment"] == "api-server"
-
-    def test_list_pods_by_status(self):
-        """测试按状态过滤 Pod"""
-        from devops_crew.tools.kubernetes_tools import list_pods
-        result = list_pods.run("production", None, "CrashLoopBackOff")
-        data = json.loads(result)
-
-        assert "pods" in data
-        for pod in data["pods"]:
-            assert pod["status"] == "CrashLoopBackOff"
-
-    def test_get_pod_status_existing(self):
-        """测试获取存在 Pod 的状态"""
-        from devops_crew.tools.kubernetes_tools import get_pod_status
-        result = get_pod_status.run("mysql-db-0", "production")
-        data = json.loads(result)
-
-        assert "name" in data
-        assert data["name"] == "mysql-db-0"
-        assert "status" in data
-        assert "resources" in data
-
-    def test_get_pod_status_with_issues(self):
-        """测试获取有问题 Pod 的状态（应包含 issues）"""
-        from devops_crew.tools.kubernetes_tools import get_pod_status
-        result = get_pod_status.run("worker-service-6b4d9c8f7-k9j2l", "production")
-        data = json.loads(result)
-
-        assert "issues" in data
-        assert len(data["issues"]) > 0
-        assert data["health"] in ("warning", "critical")
-
-    def test_get_pod_status_not_found(self):
-        """测试获取不存在 Pod 的状态"""
-        from devops_crew.tools.kubernetes_tools import get_pod_status
-        result = get_pod_status.run("nonexistent-pod-xyz", "production")
-        data = json.loads(result)
-
-        assert "error" in data
-
-    def test_restart_pod(self):
-        """测试重启 Pod"""
-        from devops_crew.tools.kubernetes_tools import restart_pod
-        result = restart_pod.run("api-server-7d9f8b6c5-x2k4p", "production")
-        data = json.loads(result)
-
-        assert "success" in data
-        assert data["success"] is True
-        assert "new_pod" in data
-        assert "timeline" in data
-
-    def test_scale_deployment_up(self):
-        """测试扩容 Deployment"""
-        from devops_crew.tools.kubernetes_tools import scale_deployment
-        result = scale_deployment.run("api-server", 4, "production")
-        data = json.loads(result)
-
-        assert data["success"] is True
-        assert data["new_replicas"] == 4
-        assert data["action"] == "扩容"
-
-    def test_scale_deployment_down(self):
-        """测试缩容 Deployment"""
-        from devops_crew.tools.kubernetes_tools import scale_deployment
-        result = scale_deployment.run("api-server", 1, "production")
-        data = json.loads(result)
-
-        assert data["success"] is True
-        assert data["new_replicas"] == 1
-        assert data["action"] == "缩容"
-
-    def test_scale_deployment_invalid(self):
-        """测试无效的扩缩容操作"""
-        from devops_crew.tools.kubernetes_tools import scale_deployment
-
-        # 负数副本
-        result = scale_deployment.run("api-server", -1, "production")
-        data = json.loads(result)
-        assert data["success"] is False
-
-        # 超出最大值
-        result = scale_deployment.run("api-server", 100, "production")
-        data = json.loads(result)
-        assert data["success"] is False
-
-    def test_get_pod_logs(self):
-        """测试获取 Pod 日志"""
-        from devops_crew.tools.kubernetes_tools import get_pod_logs
-        result = get_pod_logs.run("worker-service-6b4d9c8f7-k9j2l", "production", None, 20, False)
-        data = json.loads(result)
-
-        assert "pod_name" in data
-        assert "logs" in data
-        assert isinstance(data["logs"], list)
+# ==================== AgentTask 数据类测试 ====================
+
+class TestAgentTask:
+    """测试 AgentTask 数据类"""
+
+    def test_create_task_defaults(self):
+        """测试默认值创建任务"""
+        from devops_crew.core.agent_base import AgentTask
+        task = AgentTask(title="测试任务", description="这是一个测试")
+        assert task.title == "测试任务"
+        assert task.description == "这是一个测试"
+        assert task.priority == 5
+        assert task.status == "pending" if hasattr(task, 'status') else True
+        assert len(task.id) > 0
+
+    def test_task_to_dict(self):
+        """测试任务序列化"""
+        from devops_crew.core.agent_base import AgentTask
+        task = AgentTask(
+            title="架构设计",
+            description="设计系统架构",
+            priority=1,
+        )
+        d = task.to_dict()
+        assert "id" in d
+        assert d["title"] == "架构设计"
+        assert d["description"] == "设计系统架构"
+        assert d["priority"] == 1
+
+    def test_task_context(self):
+        """测试任务上下文"""
+        from devops_crew.core.agent_base import AgentTask
+        task = AgentTask(
+            title="代码审查",
+            description="审查认证模块代码",
+            context={"language": "Python", "module": "auth"},
+        )
+        assert task.context["language"] == "Python"
+        assert task.context["module"] == "auth"
+
+    def test_task_auto_id(self):
+        """测试任务 ID 自动生成"""
+        from devops_crew.core.agent_base import AgentTask
+        task1 = AgentTask(title="任务1", description="描述1")
+        task2 = AgentTask(title="任务2", description="描述2")
+        assert task1.id != task2.id
+
+
+# ==================== TaskResult 数据类测试 ====================
+
+class TestTaskResult:
+    """测试 TaskResult 数据类"""
+
+    def test_create_result_success(self):
+        """测试创建成功结果"""
+        from devops_crew.core.agent_base import TaskResult
+        result = TaskResult(
+            task_id="task-001",
+            agent_id="architect",
+            agent_name="架构师",
+            success=True,
+            output="设计完成",
+        )
+        assert result.success is True
+        assert result.output == "设计完成"
+        assert result.error is None
+
+    def test_create_result_failure(self):
+        """测试创建失败结果"""
+        from devops_crew.core.agent_base import TaskResult
+        result = TaskResult(
+            task_id="task-002",
+            agent_id="developer",
+            agent_name="开发工程师",
+            success=False,
+            output="",
+            error="API 调用失败",
+        )
+        assert result.success is False
+        assert result.error == "API 调用失败"
+
+    def test_result_to_dict(self):
+        """测试结果序列化"""
+        from devops_crew.core.agent_base import TaskResult
+        result = TaskResult(
+            task_id="task-003",
+            agent_id="tester",
+            agent_name="测试工程师",
+            success=True,
+            output="测试通过",
+            duration=3.14,
+            steps=["步骤1", "步骤2"],
+        )
+        d = result.to_dict()
+        assert d["task_id"] == "task-003"
+        assert d["success"] is True
+        assert d["duration"] == 3.14
+        assert len(d["steps"]) == 2
+
+    def test_result_artifacts(self):
+        """测试结果附件"""
+        from devops_crew.core.agent_base import TaskResult
+        result = TaskResult(
+            task_id="task-004",
+            agent_id="developer",
+            agent_name="开发工程师",
+            success=True,
+            output="代码生成完成",
+            artifacts={"code": "def hello(): pass", "lang": "Python"},
+        )
+        assert result.artifacts["lang"] == "Python"
+
+
+# ==================== AgentMemory 测试 ====================
+
+class TestAgentMemory:
+    """测试 AgentMemory 记忆系统"""
+
+    def test_short_term_memory(self):
+        """测试短期记忆读写"""
+        from devops_crew.core.agent_base import AgentMemory
+        mem = AgentMemory(stm_capacity=10)
+        mem.remember("architecture", "分层架构设计")
+        mem.remember("tech_stack", "Python/FastAPI")
+
+        recent = mem.recall_recent(2)
+        assert len(recent) == 2
+        keys = [r["key"] for r in recent]
+        assert "architecture" in keys
+        assert "tech_stack" in keys
+
+    def test_long_term_memory(self):
+        """测试长期记忆读写"""
+        from devops_crew.core.agent_base import AgentMemory
+        mem = AgentMemory()
+        mem.store("project_guidelines", "遵循 SOLID 原则")
+        value = mem.retrieve("project_guidelines")
+        assert value == "遵循 SOLID 原则"
+
+    def test_long_term_memory_default(self):
+        """测试长期记忆默认值"""
+        from devops_crew.core.agent_base import AgentMemory
+        mem = AgentMemory()
+        value = mem.retrieve("nonexistent_key", default="默认值")
+        assert value == "默认值"
+
+    def test_stm_capacity_limit(self):
+        """测试短期记忆容量限制"""
+        from devops_crew.core.agent_base import AgentMemory
+        mem = AgentMemory(stm_capacity=3)
+        for i in range(5):
+            mem.remember(f"key_{i}", f"value_{i}")
+        recent = mem.recall_recent(10)
+        assert len(recent) <= 3  # 不超过容量
+
+    def test_forget_long_term(self):
+        """测试删除长期记忆"""
+        from devops_crew.core.agent_base import AgentMemory
+        mem = AgentMemory()
+        mem.store("temp_data", "临时数据")
+        mem.forget("temp_data")
+        value = mem.retrieve("temp_data")
+        assert value is None
+
+    def test_memory_snapshot(self):
+        """测试记忆快照"""
+        from devops_crew.core.agent_base import AgentMemory
+        mem = AgentMemory()
+        mem.remember("stm_key", "stm_value")
+        mem.store("ltm_key", "ltm_value")
+        snapshot = mem.snapshot()
+        assert "stm" in snapshot
+        assert "ltm" in snapshot
+
+    def test_recall_by_key(self):
+        """测试按键名查找短期记忆"""
+        from devops_crew.core.agent_base import AgentMemory
+        mem = AgentMemory()
+        mem.remember("task_result", "第一次结果")
+        mem.remember("other_key", "其他内容")
+        mem.remember("task_result", "第二次结果")
+        results = mem.recall_by_key("task_result")
+        assert len(results) == 2
+
+
+# ==================== CommunicationBus 测试 ====================
+
+class TestCommunicationBus:
+    """测试 CommunicationBus 通信总线"""
+
+    def test_publish_and_subscribe(self):
+        """测试发布/订阅消息"""
+        from devops_crew.core.agent_base import CommunicationBus
+        bus = CommunicationBus()
+        received = []
+
+        def handler(msg):
+            received.append(msg)
+
+        bus.subscribe("architecture_ready", handler)
+        bus.publish("architecture_ready", {"design": "分层架构"}, sender="architect")
+
+        assert len(received) == 1
+        assert received[0]["content"]["design"] == "分层架构"
+
+    def test_no_subscriber(self):
+        """测试无订阅者时发布不报错"""
+        from devops_crew.core.agent_base import CommunicationBus
+        bus = CommunicationBus()
+        # Should not raise
+        bus.publish("some_topic", "content", sender="agent")
+
+    def test_message_history(self):
+        """测试消息历史记录"""
+        from devops_crew.core.agent_base import CommunicationBus
+        bus = CommunicationBus()
+        bus.publish("topic_a", "消息1", sender="agent_1")
+        bus.publish("topic_b", "消息2", sender="agent_2")
+        history = bus.get_messages()
+        assert len(history) == 2
+
+    def test_multiple_subscribers(self):
+        """测试多个订阅者"""
+        from devops_crew.core.agent_base import CommunicationBus
+        bus = CommunicationBus()
+        received_a = []
+        received_b = []
+
+        bus.subscribe("event", lambda m: received_a.append(m))
+        bus.subscribe("event", lambda m: received_b.append(m))
+        bus.publish("event", "data", sender="source")
+
+        assert len(received_a) == 1
+        assert len(received_b) == 1
+
+    def test_agent_messages(self):
+        """测试智能体消息查询"""
+        from devops_crew.core.agent_base import CommunicationBus
+        bus = CommunicationBus()
+        bus.publish("task_done", "完成", sender="architect", recipient="developer")
+        msgs = bus.get_messages(sender="architect")
+        assert len(msgs) >= 1
+
+
+# ==================== AgentStatus 测试 ====================
+
+class TestAgentStatus:
+    """测试 AgentStatus 枚举"""
+
+    def test_status_values(self):
+        """测试状态枚举值"""
+        from devops_crew.core.agent_base import AgentStatus
+        assert AgentStatus.IDLE.value == "idle"
+        assert AgentStatus.THINKING.value == "thinking"
+        assert AgentStatus.PLANNING.value == "planning"
+        assert AgentStatus.EXECUTING.value == "executing"
+        assert AgentStatus.DONE.value == "done"
+        assert AgentStatus.ERROR.value == "error"
+
+    def test_status_comparison(self):
+        """测试状态比较"""
+        from devops_crew.core.agent_base import AgentStatus
+        assert AgentStatus.IDLE != AgentStatus.EXECUTING
+        assert AgentStatus.DONE == AgentStatus.DONE
+
+
+# ==================== 智能体初始化测试 ====================
+
+class TestAgentInitialization:
+    """测试智能体初始化（无需 LLM）"""
+
+    def test_architect_agent_init(self):
+        """测试架构师智能体初始化"""
+        from devops_crew.agents.dev_agents import ArchitectAgent
+        agent = ArchitectAgent()
+        assert agent.name == "架构师"
+        assert agent.agent_id == "architect"
+        assert agent.role is not None
+        assert agent.backstory is not None
+
+    def test_developer_agent_init(self):
+        """测试开发工程师智能体初始化"""
+        from devops_crew.agents.dev_agents import DeveloperAgent
+        agent = DeveloperAgent()
+        assert agent.name == "开发工程师"
+        assert agent.agent_id == "developer"
+
+    def test_tester_agent_init(self):
+        """测试测试工程师智能体初始化"""
+        from devops_crew.agents.dev_agents import TesterAgent
+        agent = TesterAgent()
+        assert agent.name == "测试工程师"
+        assert agent.agent_id == "tester"
+
+    def test_reviewer_agent_init(self):
+        """测试代码审查官智能体初始化"""
+        from devops_crew.agents.dev_agents import CodeReviewerAgent
+        agent = CodeReviewerAgent()
+        assert agent.name == "代码审查官"
+        assert agent.agent_id == "reviewer"
+
+    def test_pm_agent_init(self):
+        """测试项目经理智能体初始化"""
+        from devops_crew.agents.dev_agents import ProjectManagerAgent
+        agent = ProjectManagerAgent()
+        assert agent.name == "项目经理"
+        assert agent.agent_id == "pm"
+
+    def test_agent_initial_status(self):
+        """测试智能体初始状态"""
+        from devops_crew.agents.dev_agents import ArchitectAgent
+        from devops_crew.core.agent_base import AgentStatus
+        agent = ArchitectAgent()
+        assert agent.status == AgentStatus.IDLE
+
+    def test_create_dev_team(self):
+        """测试创建开发团队"""
+        from devops_crew.agents.dev_agents import create_dev_team
+        team = create_dev_team()
+        assert "architect" in team
+        assert "developer" in team
+        assert "tester" in team
+        assert "reviewer" in team
+        assert "pm" in team
+        assert len(team) == 5
+
+
+# ==================== Orchestrator 测试 ====================
+
+class TestOrchestrator:
+    """测试 Orchestrator 协调引擎（使用 mock LLM）"""
+
+    @patch("devops_crew.core.agent_base._call_llm")
+    def test_orchestrator_init(self, mock_llm):
+        """测试协调器初始化"""
+        from devops_crew.core.orchestrator import Orchestrator
+        mock_llm.return_value = "Mock LLM response"
+        orch = Orchestrator(name="测试协调器")
+        assert orch.name == "测试协调器"
+
+    @patch("devops_crew.core.agent_base._call_llm")
+    def test_orchestrator_register_agents(self, mock_llm):
+        """测试注册智能体"""
+        from devops_crew.core.orchestrator import Orchestrator
+        from devops_crew.agents.dev_agents import create_dev_team
+        mock_llm.return_value = "Mock response"
+        orch = Orchestrator(name="测试协调器")
+        team = create_dev_team()
+        for agent in team.values():
+            orch.register(agent)
+        assert len(orch._agents) == 5
+
+    @patch("devops_crew.core.agent_base._call_llm")
+    def test_orchestrator_workflow_creation(self, mock_llm):
+        """测试工作流创建"""
+        from devops_crew.core.orchestrator import Orchestrator, WorkflowStep, StepType
+        from devops_crew.agents.dev_agents import ArchitectAgent
+        mock_llm.return_value = "Mock LLM response for architecture"
+        orch = Orchestrator(name="测试协调器")
+        agent = ArchitectAgent()
+        orch.register(agent)
+
+        steps = [
+            WorkflowStep(
+                agent_id="architect",
+                task_title="测试设计任务",
+                task_desc="这是一个测试任务描述",
+                step_type=StepType.SEQUENTIAL,
+            )
+        ]
+        assert len(steps) == 1
+        assert steps[0].agent_id == "architect"
+
+    @patch("devops_crew.core.agent_base._call_llm")
+    def test_workflow_execution_with_mock(self, mock_llm):
+        """测试工作流执行（使用 mock LLM）"""
+        mock_llm.return_value = (
+            "这是模拟的 LLM 响应，包含架构设计方案。\n"
+            "1. 分层架构\n2. REST API\n3. 数据库设计"
+        )
+
+        from devops_crew.core.orchestrator import Orchestrator, WorkflowStep, StepType
+        from devops_crew.agents.dev_agents import ArchitectAgent
+
+        orch = Orchestrator(name="测试协调器")
+        agent = ArchitectAgent()
+        orch.register(agent)
+
+        steps = [
+            WorkflowStep(
+                agent_id="architect",
+                task_title="系统架构设计",
+                task_desc="设计一个简单的 Web 应用架构",
+                step_type=StepType.SEQUENTIAL,
+            )
+        ]
+
+        result = orch.run_workflow(
+            name="测试工作流",
+            steps=steps,
+        )
+        assert result is not None
+        assert len(result.step_results) == 1
+
+
+# ==================== 场景元数据测试 ====================
+
+class TestScenarioMeta:
+    """测试场景元数据"""
+
+    def test_scenarios_meta_count(self):
+        """测试场景元数据数量"""
+        from scenario_dev_complete import SCENARIOS_META
+        assert len(SCENARIOS_META) == 3
+
+    def test_scenarios_meta_structure(self):
+        """测试场景元数据结构"""
+        from scenario_dev_complete import SCENARIOS_META
+        for meta in SCENARIOS_META:
+            assert "id" in meta
+            assert "name" in meta
+            assert "description" in meta
+
+    def test_auth_scenario_meta(self):
+        """测试认证场景元数据"""
+        from scenario_dev_complete import SCENARIOS_META
+        auth = next((m for m in SCENARIOS_META if m["id"] == "auth_module"), None)
+        assert auth is not None
+        assert "用户认证" in auth["name"]
+
+    def test_data_pipeline_scenario_meta(self):
+        """测试数据处理场景元数据"""
+        from scenario_dev_complete import SCENARIOS_META
+        data = next((m for m in SCENARIOS_META if m["id"] == "data_pipeline"), None)
+        assert data is not None
+
+    def test_rest_api_scenario_meta(self):
+        """测试 REST API 场景元数据"""
+        from scenario_dev_complete import SCENARIOS_META
+        api = next((m for m in SCENARIOS_META if m["id"] == "rest_api"), None)
+        assert api is not None
+
+    def test_scenario_functions_importable(self):
+        """测试场景函数可导入"""
+        from scenario_dev_complete import (
+            run_scenario_auth,
+            run_scenario_data_pipeline,
+            run_scenario_rest_api,
+            run_all_scenarios,
+            get_scenario_meta,
+        )
+        assert callable(run_scenario_auth)
+        assert callable(run_scenario_data_pipeline)
+        assert callable(run_scenario_rest_api)
+        assert callable(run_all_scenarios)
+        assert callable(get_scenario_meta)
+
+    def test_get_scenario_meta(self):
+        """测试按 ID 获取场景元数据"""
+        from scenario_dev_complete import get_scenario_meta
+        meta = get_scenario_meta("auth_module")
+        assert meta is not None
+        assert meta["id"] == "auth_module"
+
+    def test_get_scenario_meta_not_found(self):
+        """测试获取不存在的场景元数据"""
+        from scenario_dev_complete import get_scenario_meta
+        meta = get_scenario_meta("nonexistent_scenario")
+        assert meta is None
 
 
 # ==================== 集成测试 ====================
 
 class TestIntegration:
-    """集成测试：模拟完整的运维场景工具调用链"""
+    """集成测试：验证各模块协同工作"""
 
-    def test_monitoring_workflow(self):
-        """测试监控告警工作流"""
-        from devops_crew.tools.monitor_tools import get_alerts, check_service_health, get_cpu_usage
+    def test_all_agents_importable(self):
+        """测试所有智能体可导入"""
+        from devops_crew.agents import (
+            ArchitectAgent,
+            DeveloperAgent,
+            TesterAgent,
+            CodeReviewerAgent,
+            ProjectManagerAgent,
+            create_dev_team,
+        )
+        assert ArchitectAgent is not None
+        assert DeveloperAgent is not None
+        assert TesterAgent is not None
+        assert CodeReviewerAgent is not None
+        assert ProjectManagerAgent is not None
 
-        # 1. 获取当前告警
-        alerts_result = json.loads(get_alerts.run(None, None, "firing"))
-        assert alerts_result["total_alerts"] > 0
+    def test_core_framework_importable(self):
+        """测试核心框架可导入"""
+        from devops_crew.core import (
+            AgentBase,
+            AgentStatus,
+            TaskResult,
+            AgentTask,
+            AgentMemory,
+            CommunicationBus,
+            Orchestrator,
+            WorkflowStep,
+            WorkflowResult,
+        )
+        assert AgentBase is not None
+        assert Orchestrator is not None
 
-        # 2. 检查服务健康状态
-        health_result = json.loads(check_service_health.run(None))
-        assert "summary" in health_result
+    def test_agent_with_bus(self):
+        """测试智能体与通信总线集成"""
+        from devops_crew.core.agent_base import CommunicationBus
+        from devops_crew.agents.dev_agents import ArchitectAgent, DeveloperAgent
 
-        # 3. 收集 CPU 指标
-        cpu_result = json.loads(get_cpu_usage.run(None))
-        assert "nodes" in cpu_result
+        bus = CommunicationBus()
+        arch = ArchitectAgent(bus=bus)
+        dev = DeveloperAgent(bus=bus)
 
-        # 验证告警中有高 CPU 告警（与 CPU 数据一致）
-        high_cpu_alerts = [
-            a for a in alerts_result["alerts"]
-            if "CPU" in a.get("message", "") or "cpu" in a.get("rule", "").lower()
-        ]
-        high_cpu_nodes = [n for n in cpu_result["nodes"] if n["cpu_percent"] > 80]
-        assert len(high_cpu_nodes) > 0
+        # 订阅消息
+        received = []
+        bus.subscribe("architecture_ready", lambda m: received.append(m))
 
-    def test_diagnosis_workflow(self):
-        """测试故障诊断工作流"""
-        from devops_crew.tools.log_tools import analyze_errors, filter_by_level
-        from devops_crew.tools.kubernetes_tools import list_pods, get_pod_logs
+        # 架构师广播消息
+        arch.broadcast("architecture_ready", {"design": "微服务"})
+        assert len(received) == 1
 
-        # 1. 分析错误日志
-        errors = json.loads(analyze_errors.run("api-server", 30))
-        assert "root_cause_hints" in errors
+    @patch("devops_crew.core.agent_base._call_llm")
+    def test_full_agent_status_flow(self, mock_llm):
+        """测试智能体状态流转"""
+        mock_llm.return_value = "1. 分析需求\n2. 设计架构\n3. 完成文档"
+        from devops_crew.core.agent_base import AgentStatus, AgentTask
+        from devops_crew.agents.dev_agents import ArchitectAgent
 
-        # 2. 获取错误详情
-        error_logs = json.loads(filter_by_level.run("ERROR", "api-server", 20))
-        assert len(error_logs["entries"]) > 0
+        agent = ArchitectAgent()
+        assert agent.status == AgentStatus.IDLE
 
-        # 3. 检查 Pod 状态
-        pods = json.loads(list_pods.run("production", None, None))
-        problem_pods = [p for p in pods["pods"] if p["restarts"] > 3]
-        assert len(problem_pods) > 0
-
-        # 4. 获取问题 Pod 日志
-        if problem_pods:
-            pod_logs = json.loads(
-                get_pod_logs.run(problem_pods[0]["name"], "production", None, 20, False)
-            )
-            assert "logs" in pod_logs
-
-    def test_deployment_workflow(self):
-        """测试部署工作流"""
-        from devops_crew.tools.git_tools import get_latest_commits, get_diff
-        from devops_crew.tools.docker_tools import build_image
-        from devops_crew.tools.kubernetes_tools import scale_deployment, list_pods
-
-        # 1. 获取最新代码
-        commits = json.loads(get_latest_commits.run("main", 3))
-        assert len(commits["commits"]) > 0
-
-        # 2. 查看代码变更
-        diff = json.loads(get_diff.run("a1b2c3d", None, "main", None))
-        assert "diff" in diff
-
-        # 3. 构建镜像
-        build = json.loads(build_image.run("api-server", "v2.2.0", ".", None))
-        assert build["success"] is True
-
-        # 4. 部署
-        deploy = json.loads(scale_deployment.run("api-server", 2, "production"))
-        assert deploy["success"] is True
-
-        # 5. 验证
-        pods = json.loads(list_pods.run("production", "api-server", None))
-        assert pods["total_pods"] > 0
+        task = AgentTask(
+            title="测试架构设计",
+            description="为测试应用设计架构",
+        )
+        result = agent.run(task)
+        assert result is not None
+        # After completion, status should be IDLE or DONE
+        assert agent.status in (AgentStatus.IDLE, AgentStatus.DONE)
