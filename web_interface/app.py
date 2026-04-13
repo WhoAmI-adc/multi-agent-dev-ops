@@ -21,6 +21,11 @@ _CREW_PATH = os.path.join(os.path.dirname(__file__), '..', 'my_first_crew', 'src
 if _CREW_PATH not in sys.path:
     sys.path.insert(0, os.path.abspath(_CREW_PATH))
 
+# 将项目根目录加入 sys.path，以便导入自研多智能体框架
+_ROOT_PATH = os.path.join(os.path.dirname(__file__), '..')
+if _ROOT_PATH not in sys.path:
+    sys.path.insert(0, os.path.abspath(_ROOT_PATH))
+
 # ──────────────────────────────────────────────
 # 应用初始化
 # ──────────────────────────────────────────────
@@ -288,6 +293,11 @@ def settings():
     return render_template('settings.html')
 
 
+@app.route('/software-dev')
+def software_dev():
+    return render_template('software_dev_index.html')
+
+
 # ──────────────────────────────────────────────
 # REST API
 # ──────────────────────────────────────────────
@@ -410,6 +420,197 @@ def api_metrics_history():
             'memory': round(random.uniform(40, 80), 1),
         })
     return jsonify({'points': points})
+
+
+# ──────────────────────────────────────────────
+# 自研多智能体开发框架 API
+# ──────────────────────────────────────────────
+
+def _make_dev_orchestrator():
+    """构建并返回注册了全部开发智能体的 Orchestrator（懒加载）"""
+    from devops_crew.core.orchestrator import Orchestrator, Workflow, WorkflowStep
+    from devops_crew.agents.dev_agents import (
+        ArchitectAgent, DeveloperAgent, TestEngineerAgent,
+        CodeReviewerAgent, ProjectManagerAgent,
+    )
+    orch = Orchestrator()
+    orch.register_agent(ArchitectAgent())
+    orch.register_agent(DeveloperAgent())
+    orch.register_agent(TestEngineerAgent())
+    orch.register_agent(CodeReviewerAgent())
+    orch.register_agent(ProjectManagerAgent())
+    return orch
+
+
+def _run_dev_scenario(scenario_key: str, workflow_factory) -> None:
+    """在后台线程中执行开发场景，并通过 WebSocket 推送进度"""
+    task_id = f'dev_{scenario_key}_{int(time.time() * 1000)}'
+    running_tasks[task_id] = {
+        'scenario_id': scenario_key,
+        'scenario_name': scenario_key,
+        'start_time': datetime.now(),
+        'status': 'running',
+        'active_agents': [],
+        'progress': 0,
+    }
+
+    def progress_cb(step_idx, total, agent_name, message):
+        running_tasks[task_id]['progress'] = int(step_idx / total * 100)
+        add_log('INFO', message, source=agent_name)
+        socketio.emit('task_progress', {
+            'task_id': task_id,
+            'step': message,
+            'step_index': step_idx,
+            'total_steps': total,
+            'progress': int(step_idx / total * 100),
+            'agent': {'name': agent_name},
+            'message': message,
+        })
+
+    try:
+        orch = _make_dev_orchestrator()
+        workflow = workflow_factory(orch)
+        from devops_crew.core.orchestrator import Orchestrator  # noqa: F401
+        report = orch.execute_workflow(workflow, progress_callback=progress_cb)
+
+        duration = report['duration_seconds']
+        result_msg = (
+            f"开发场景 [{report['workflow_name']}] 执行完成，"
+            f"耗时 {duration:.1f} 秒，"
+            f"完成 {report['completed_steps']}/{report['total_steps']} 步骤"
+        )
+        add_log('INFO', result_msg, source='orchestrator')
+
+        history_entry = {
+            'id': task_id,
+            'scenario_id': scenario_key,
+            'scenario_name': report['workflow_name'],
+            'start_time': report['started_at'],
+            'duration': duration,
+            'status': 'success',
+            'params': {},
+            'result': result_msg,
+            'report': report,
+        }
+        execution_history.append(history_entry)
+        running_tasks[task_id]['status'] = 'completed'
+        socketio.emit('task_completed', {
+            'task_id': task_id,
+            'result': result_msg,
+            'history': history_entry,
+        })
+
+    except Exception as exc:
+        err_msg = f'开发场景执行失败: {exc}'
+        add_log('ERROR', err_msg, source='orchestrator')
+        running_tasks[task_id]['status'] = 'failed'
+        execution_history.append({
+            'id': task_id,
+            'scenario_id': scenario_key,
+            'scenario_name': scenario_key,
+            'start_time': running_tasks[task_id]['start_time'].strftime('%Y-%m-%d %H:%M:%S'),
+            'duration': 0,
+            'status': 'failed',
+            'params': {},
+            'result': err_msg,
+        })
+        socketio.emit('task_failed', {'task_id': task_id, 'error': err_msg})
+    finally:
+        running_tasks.pop(task_id, None)
+
+
+@app.route('/api/framework/status')
+def api_framework_status():
+    """获取自研多智能体框架状态"""
+    try:
+        orch = _make_dev_orchestrator()
+        status = orch.get_framework_status()
+        return jsonify({'success': True, 'status': status})
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500
+
+
+@app.route('/api/scenario/auth', methods=['POST'])
+def api_scenario_auth():
+    """运行用户认证模块开发场景"""
+    from devops_crew.core.orchestrator import Workflow, WorkflowStep
+
+    def _factory(orch):
+        wf = Workflow('wf-auth-web', '用户认证模块开发', '开发完整的 JWT 用户认证模块')
+        wf.add_step(WorkflowStep('s1', 'architect_agent', 'architecture_design',
+                                  '设计用户认证系统架构（JWT + bcrypt）'))
+        wf.add_step(WorkflowStep('s2', 'developer_agent', 'code_implementation',
+                                  '实现用户注册、登录、Token 颁发与验证'))
+        wf.add_step(WorkflowStep('s3', 'test_engineer_agent', 'test_design',
+                                  '编写认证模块单元测试与集成测试'))
+        wf.add_step(WorkflowStep('s4', 'code_reviewer_agent', 'code_review',
+                                  '审查认证代码安全性与代码质量'))
+        wf.add_step(WorkflowStep('s5', 'developer_agent', 'code_optimization',
+                                  '根据审查意见优化代码，添加速率限制'))
+        return wf
+
+    thread = threading.Thread(
+        target=_run_dev_scenario,
+        args=('auth', _factory),
+        daemon=True,
+    )
+    thread.start()
+    add_log('INFO', '已触发开发场景: 用户认证模块', source='api')
+    return jsonify({'status': 'started', 'scenario': 'auth', 'message': '用户认证模块开发场景已启动'})
+
+
+@app.route('/api/scenario/data', methods=['POST'])
+def api_scenario_data():
+    """运行数据处理模块开发场景"""
+    from devops_crew.core.orchestrator import Workflow, WorkflowStep
+
+    def _factory(orch):
+        wf = Workflow('wf-data-web', '数据处理模块开发', '开发通用数据清洗与聚合管道')
+        wf.add_step(WorkflowStep('s1', 'architect_agent', 'architecture_design',
+                                  '设计数据处理管道架构（Pipeline 模式）'))
+        wf.add_step(WorkflowStep('s2', 'developer_agent', 'code_implementation',
+                                  '实现 CSV/JSON/Excel 读取、清洗与聚合功能'))
+        wf.add_step(WorkflowStep('s3', 'test_engineer_agent', 'test_design',
+                                  '编写数据处理模块测试（含性能测试）'))
+        wf.add_step(WorkflowStep('s4', 'code_reviewer_agent', 'code_review',
+                                  '审查内存管理、错误处理与 API 设计'))
+        return wf
+
+    thread = threading.Thread(
+        target=_run_dev_scenario,
+        args=('data', _factory),
+        daemon=True,
+    )
+    thread.start()
+    add_log('INFO', '已触发开发场景: 数据处理模块', source='api')
+    return jsonify({'status': 'started', 'scenario': 'data', 'message': '数据处理模块开发场景已启动'})
+
+
+@app.route('/api/scenario/api', methods=['POST'])
+def api_scenario_api():
+    """运行 REST API 服务开发场景"""
+    from devops_crew.core.orchestrator import Workflow, WorkflowStep
+
+    def _factory(orch):
+        wf = Workflow('wf-api-web', 'REST API 服务开发', '开发符合 RESTful 规范的商品管理 API 服务')
+        wf.add_step(WorkflowStep('s1', 'architect_agent', 'api_design',
+                                  '设计 REST API 端点、请求/响应格式与认证策略'))
+        wf.add_step(WorkflowStep('s2', 'developer_agent', 'code_implementation',
+                                  '实现 Flask API，含分页、过滤、统一响应格式'))
+        wf.add_step(WorkflowStep('s3', 'test_engineer_agent', 'integration_test',
+                                  '编写 API 集成测试（CRUD + 认证 + 并发）'))
+        wf.add_step(WorkflowStep('s4', 'code_reviewer_agent', 'code_review',
+                                  '审查 RESTful 规范符合度、安全性与性能'))
+        return wf
+
+    thread = threading.Thread(
+        target=_run_dev_scenario,
+        args=('api_service', _factory),
+        daemon=True,
+    )
+    thread.start()
+    add_log('INFO', '已触发开发场景: REST API 服务', source='api')
+    return jsonify({'status': 'started', 'scenario': 'api_service', 'message': 'REST API 开发场景已启动'})
 
 
 # ──────────────────────────────────────────────
