@@ -1,0 +1,239 @@
+# 多智能体 DevOps 系统 - 任务配置
+
+# ==================== 监控相关任务 ====================
+
+monitor_infrastructure_task:
+  description: >
+    对当前基础设施进行全面监控检查。
+    
+    请执行以下操作：
+    1. 获取所有关键服务的CPU、内存、磁盘使用率
+    2. 检查各服务健康状态
+    3. 获取当前活跃告警列表
+    4. 分析指标趋势，识别潜在风险
+    
+    监控范围：{service_name}
+    检查时间窗口：最近15分钟
+    
+    请重点关注超过阈值的指标（CPU>80%, 内存>85%, 磁盘>90%）
+    并将异常按严重程度（紧急/警告/通知）进行分类。
+  expected_output: >
+    一份详细的监控报告，包含：
+    1. 各服务资源使用情况汇总表格
+    2. 检测到的异常指标列表（含严重程度和具体数值）
+    3. 当前活跃告警（如有）
+    4. 趋势分析和风险预判
+    5. 建议的关注点和下一步行动
+  agent: infrastructure_monitor
+
+check_alerts_task:
+  description: >
+    检查并处理当前系统告警。
+    
+    请执行以下操作：
+    1. 获取所有当前告警
+    2. 按严重程度排序
+    3. 分析告警原因
+    4. 提出处理建议
+    
+    目标系统：{service_name}
+  expected_output: >
+    一份告警处理报告，包含：
+    1. 告警汇总（总数、各级别数量）
+    2. 高优先级告警详情
+    3. 告警根因初步分析
+    4. 建议的处理措施
+  agent: infrastructure_monitor
+
+# ==================== 诊断相关任务 ====================
+
+diagnose_fault_task:
+  description: >
+    对当前系统故障进行深入诊断分析。
+    
+    故障描述：{fault_description}
+    
+    请执行以下操作：
+    1. 搜索和分析相关错误日志
+    2. 查看监控指标异常
+    3. 检查容器/Pod状态
+    4. 关联分析各类信息
+    5. 建立故障假设并验证
+    
+    重点分析最近30分钟内的错误模式。
+  expected_output: >
+    一份完整的故障诊断报告，包含：
+    1. 故障概述（时间、影响范围、严重程度）
+    2. 错误日志分析（关键错误、频率、时间线）
+    3. 根因分析（最可能的原因及置信度）
+    4. 备选假设（其他可能原因）
+    5. 确认诊断所需的额外信息
+    6. 建议的修复方向
+  agent: fault_diagnostician
+
+analyze_performance_task:
+  description: >
+    分析系统性能问题的根本原因。
+    
+    性能问题描述：{performance_issue}
+    
+    请执行以下操作：
+    1. 收集CPU、内存、磁盘IO等系统指标
+    2. 分析慢查询和性能日志
+    3. 检查资源瓶颈
+    4. 对比历史基线数据
+    5. 识别性能热点
+  expected_output: >
+    一份性能分析报告，包含：
+    1. 当前性能状况快照
+    2. 性能瓶颈识别（CPU/内存/IO/网络）
+    3. 根因分析
+    4. 历史趋势对比
+    5. 优化机会清单
+  agent: fault_diagnostician
+
+# ==================== 修复相关任务 ====================
+
+execute_remediation_task:
+  description: >
+    根据诊断结果执行自动化修复操作。
+    
+    诊断结论：{diagnosis_result}
+    
+    请执行以下修复步骤：
+    1. 制定修复方案（包含回滚计划）
+    2. 执行立即缓解措施（如重启服务、调整配置）
+    3. 验证修复效果
+    4. 执行根本解决措施
+    5. 最终验证服务恢复正常
+    
+    注意：每个操作前需评估风险，确保有回滚方案。
+  expected_output: >
+    一份修复执行报告，包含：
+    1. 修复方案概述
+    2. 执行步骤详情（操作、时间、结果）
+    3. 修复效果验证结果
+    4. 回滚计划（如修复失败时的操作）
+    5. 预防措施建议
+  agent: auto_remediator
+  output_file: remediation_report.md
+
+restart_services_task:
+  description: >
+    安全重启指定服务以恢复正常运行。
+    
+    目标服务：{service_name}
+    
+    请执行以下操作：
+    1. 确认当前服务状态
+    2. 检查依赖服务状态
+    3. 执行优雅停止
+    4. 等待完全停止
+    5. 启动服务
+    6. 验证启动成功
+    7. 检查服务健康状态
+  expected_output: >
+    一份服务重启报告，包含：
+    1. 重启前状态
+    2. 重启执行过程
+    3. 重启后状态验证
+    4. 服务健康检查结果
+  agent: auto_remediator
+
+# ==================== 部署相关任务 ====================
+
+deploy_application_task:
+  description: >
+    执行应用程序自动化部署。
+    
+    部署信息：
+    - 应用名称：{app_name}
+    - 版本：{version}
+    - 环境：{environment}
+    
+    请执行完整的部署流程：
+    1. 检查代码仓库最新状态
+    2. 验证代码变更内容
+    3. 构建Docker镜像
+    4. 部署到目标环境（K8s）
+    5. 验证部署成功
+    6. 健康检查
+  expected_output: >
+    一份部署执行报告，包含：
+    1. 部署概述（应用、版本、环境、时间）
+    2. 代码变更摘要
+    3. 构建结果
+    4. 部署执行步骤和结果
+    5. 部署验证结果
+    6. 部署后服务状态
+  agent: deployment_engineer
+  output_file: deployment_report.md
+
+rollback_deployment_task:
+  description: >
+    执行部署回滚操作。
+    
+    回滚信息：
+    - 应用名称：{app_name}
+    - 回滚到版本：{target_version}
+    - 回滚原因：{rollback_reason}
+    
+    请执行安全回滚：
+    1. 确认回滚目标版本存在
+    2. 执行K8s回滚操作
+    3. 验证回滚成功
+    4. 健康检查
+  expected_output: >
+    一份回滚执行报告，包含：
+    1. 回滚操作详情
+    2. 回滚结果验证
+    3. 服务恢复状态
+  agent: deployment_engineer
+
+# ==================== 性能优化相关任务 ====================
+
+optimize_performance_task:
+  description: >
+    基于性能分析结果制定和执行优化方案。
+    
+    性能分析摘要：{performance_analysis}
+    优化目标：{optimization_target}
+    
+    请制定全面的性能优化方案：
+    1. 分析各类性能指标
+    2. 识别优化机会（代码、配置、架构）
+    3. 按优先级排列优化措施
+    4. 评估每项优化的预期收益和实施风险
+    5. 制定实施计划
+  expected_output: >
+    一份详细的性能优化报告，包含：
+    1. 性能问题总结
+    2. 优化方案（按优先级排列）
+    3. 每项优化的预期效果量化
+    4. 实施计划和时间表
+    5. 监控指标建议（验证优化效果）
+    6. 长期性能改进路线图
+  agent: performance_optimizer
+  output_file: optimization_report.md
+
+generate_optimization_report_task:
+  description: >
+    生成系统性能优化综合报告。
+    
+    分析周期：{analysis_period}
+    分析范围：{service_name}
+    
+    请收集并分析：
+    1. 系统整体性能趋势
+    2. 资源利用率分析
+    3. 瓶颈识别
+    4. 与行业基准的对比
+    5. 优化建议汇总
+  expected_output: >
+    一份执行级性能报告，包含：
+    1. 性能健康度评分
+    2. 关键指标趋势图描述
+    3. Top 5性能问题
+    4. 优化建议摘要
+    5. 预期ROI分析
+  agent: performance_optimizer
