@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}执行历史 — DevOps 智能体系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <h4 class="fw-bold mb-0"><i class="fas fa-history me-2 text-primary"></i>执行历史</h4>
+    <div class="d-flex gap-2 flex-wrap">
+      <input type="text" class="form-control form-control-sm" id="history-search"
+             placeholder="搜索场景..." style="width:200px" oninput="loadHistory()" />
+      <select class="form-select form-select-sm" id="status-filter" style="width:130px" onchange="loadHistory()">
+        <option value="ALL">全部状态</option>
+        <option value="success">成功</option>
+        <option value="failed">失败</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>执行时间</th>
+              <th>场景名称</th>
+              <th>状态</th>
+              <th>耗时 (秒)</th>
+              <th>结果摘要</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody">
+            <tr><td colspan="5" class="text-center text-muted py-4">
+              <i class="fas fa-spinner fa-spin me-2"></i>加载中...
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-2 small text-muted">共 <strong id="history-total">0</strong> 条记录</div>
+</div>
+
+<!-- 详情模态框 -->
+<div class="modal fade" id="historyDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">执行详情</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="history-detail-body">-</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const historyDetailModal = new bootstrap.Modal(document.getElementById('historyDetailModal'));
+
+async function loadHistory() {
+  const search = document.getElementById('history-search').value;
+  const status = document.getElementById('status-filter').value;
+  try {
+    const res = await fetch(`/api/history?search=${encodeURIComponent(search)}&status=${status}`);
+    const data = await res.json();
+    renderHistory(data.history, data.total);
+  } catch(e) {
+    console.error('加载历史失败', e);
+  }
+}
+
+function renderHistory(list, total) {
+  document.getElementById('history-total').textContent = total;
+  const tbody = document.getElementById('history-tbody');
+  if (!list || list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">暂无历史记录</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(h => {
+    const badgeClass = h.status === 'success' ? 'bg-success' : 'bg-danger';
+    const badgeText  = h.status === 'success' ? '成功' : '失败';
+    return `<tr style="cursor:pointer" onclick="showDetail(${JSON.stringify(h).replace(/"/g,'&quot;')})">
+      <td>${h.start_time}</td>
+      <td><strong>${h.scenario_name}</strong></td>
+      <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+      <td>${h.duration}</td>
+      <td class="text-truncate" style="max-width:220px">${h.result}</td>
+    </tr>`;
+  }).join('');
+}
+
+function showDetail(h) {
+  document.getElementById('history-detail-body').innerHTML = `
+    <dl class="row">
+      <dt class="col-sm-3">场景 ID</dt><dd class="col-sm-9">${h.scenario_id}</dd>
+      <dt class="col-sm-3">场景名称</dt><dd class="col-sm-9">${h.scenario_name}</dd>
+      <dt class="col-sm-3">执行时间</dt><dd class="col-sm-9">${h.start_time}</dd>
+      <dt class="col-sm-3">耗时</dt><dd class="col-sm-9">${h.duration} 秒</dd>
+      <dt class="col-sm-3">状态</dt>
+      <dd class="col-sm-9"><span class="badge ${h.status==='success'?'bg-success':'bg-danger'}">${h.status==='success'?'成功':'失败'}</span></dd>
+      <dt class="col-sm-3">结果</dt><dd class="col-sm-9">${h.result}</dd>
+    </dl>`;
+  historyDetailModal.show();
+}
+
+document.addEventListener('DOMContentLoaded', loadHistory);
+</script>
+{% endblock %}

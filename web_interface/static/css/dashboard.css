@@ -1,0 +1,77 @@
+/* ═══════════════════════════════════════════
+   仪表板特定样式
+   ═══════════════════════════════════════════ */
+
+/* ── 指标卡片 ── */
+.metric-card { transition: transform .2s, box-shadow .2s; }
+.metric-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.1) !important; }
+.metric-card h3 { font-size: 1.8rem; color: #263238; }
+
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: .6rem;
+}
+
+/* ── 智能体状态卡片 ── */
+.agent-item {
+  display: flex;
+  align-items: center;
+  padding: .55rem .75rem;
+  border-radius: .5rem;
+  margin-bottom: .4rem;
+  background: #f8f9fa;
+  transition: background .2s;
+}
+.agent-item:last-child { margin-bottom: 0; }
+.agent-item:hover { background: #e3f2fd; }
+
+.agent-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: .75rem;
+  flex-shrink: 0;
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.agent-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.agent-status-dot.online { background: #2e7d32; animation: pulse-green 2s infinite; }
+.agent-status-dot.busy   { background: #f57f17; animation: pulse-orange 1s infinite; }
+.agent-status-dot.offline { background: #9e9e9e; }
+
+@keyframes pulse-green {
+  0%,100% { box-shadow: 0 0 0 0 rgba(46,125,50,.4); }
+  50%      { box-shadow: 0 0 0 5px rgba(46,125,50,0); }
+}
+@keyframes pulse-orange {
+  0%,100% { box-shadow: 0 0 0 0 rgba(245,127,23,.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(245,127,23,0); }
+}
+
+/* ── 最近活动表格 ── */
+#recent-history tr { cursor: default; }
+
+/* ── 告警条目 ── */
+.alert-item {
+  padding: .4rem .75rem;
+  border-radius: .5rem;
+  margin-bottom: .4rem;
+  font-size: .83rem;
+}
+.alert-item.danger  { background: #ffebee; color: #c62828; border-left: 3px solid #c62828; }
+.alert-item.warning { background: #fff8e1; color: #f57f17; border-left: 3px solid #f57f17; }
+.alert-item:last-child { margin-bottom: 0; }

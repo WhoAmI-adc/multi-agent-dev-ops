@@ -1,0 +1,88 @@
+/* ═══════════════════════════════════════════
+   全局样式 — 多智能体 DevOps 系统
+   ═══════════════════════════════════════════ */
+
+:root {
+  --primary: #1565c0;
+  --primary-dark: #0d47a1;
+  --secondary: #455a64;
+  --success: #2e7d32;
+  --warning: #f57f17;
+  --danger: #c62828;
+  --bg-page: #f0f2f5;
+  --card-radius: .75rem;
+}
+
+/* ── 基础 ── */
+body {
+  background: var(--bg-page);
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: .92rem;
+  color: #263238;
+}
+
+/* 偏移 fixed 导航栏 */
+.main-content {
+  padding-top: 66px;
+}
+
+/* ── 导航栏 ── */
+.navbar {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%) !important;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.navbar-brand { letter-spacing: .5px; font-size: 1.05rem; }
+.nav-link { font-size: .88rem; opacity: .88; transition: opacity .2s; }
+.nav-link:hover, .nav-link.active { opacity: 1; }
+
+/* ── 卡片 ── */
+.card {
+  border-radius: var(--card-radius) !important;
+}
+.card-header {
+  border-radius: var(--card-radius) var(--card-radius) 0 0 !important;
+}
+
+/* ── 表格 ── */
+.table { font-size: .86rem; }
+.table thead th { font-weight: 600; letter-spacing: .3px; font-size: .8rem; }
+
+/* ── 徽章 ── */
+.badge { font-size: .72rem; font-weight: 600; }
+
+/* ── 进度条 ── */
+.progress { border-radius: 999px; }
+.progress-bar { border-radius: 999px; }
+
+/* ── 按钮 ── */
+.btn { border-radius: .5rem; font-size: .86rem; }
+.btn-primary { background: var(--primary); border-color: var(--primary); }
+.btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+
+/* ── 输入框 ── */
+.form-control, .form-select { border-radius: .5rem; font-size: .88rem; }
+
+/* ── 分割线 ── */
+hr { border-color: rgba(0,0,0,.06); }
+
+/* ── Toast ── */
+#globalToast { min-width: 240px; }
+#globalToast.toast-success { background: var(--success); }
+#globalToast.toast-danger  { background: var(--danger); }
+#globalToast.toast-info    { background: var(--primary); }
+
+/* ── 终端风格区域 ── */
+.terminal {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-family: 'Courier New', monospace;
+  font-size: .8rem;
+  border-radius: var(--card-radius);
+  padding: 12px;
+  overflow-y: auto;
+}
+
+/* ── 响应式适配 ── */
+@media (max-width: 576px) {
+  .main-content { padding-top: 60px; }
+}

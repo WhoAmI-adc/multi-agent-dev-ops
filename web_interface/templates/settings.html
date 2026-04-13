@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}系统设置 — DevOps 智能体系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <h4 class="fw-bold mb-4"><i class="fas fa-cog me-2 text-primary"></i>系统设置</h4>
+
+  <div class="row g-3">
+    <!-- 告警阈值 -->
+    <div class="col-12 col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-0">
+          <h6 class="fw-bold mb-0"><i class="fas fa-exclamation-triangle me-2 text-warning"></i>告警阈值</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">CPU 告警阈值 (%)</label>
+            <input type="number" class="form-control" id="cpu_alert_threshold" min="10" max="99" value="80" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">内存告警阈值 (%)</label>
+            <input type="number" class="form-control" id="memory_alert_threshold" min="10" max="99" value="85" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">磁盘告警阈值 (%)</label>
+            <input type="number" class="form-control" id="disk_alert_threshold" min="10" max="99" value="90" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 系统配置 -->
+    <div class="col-12 col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-0">
+          <h6 class="fw-bold mb-0"><i class="fas fa-sliders-h me-2 text-primary"></i>系统配置</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">日志级别</label>
+            <select class="form-select" id="log_level">
+              <option value="DEBUG">DEBUG</option>
+              <option value="INFO" selected>INFO</option>
+              <option value="WARNING">WARNING</option>
+              <option value="ERROR">ERROR</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">自动刷新间隔 (秒)</label>
+            <input type="number" class="form-control" id="auto_refresh_interval" min="1" max="60" value="5" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">最大日志行数</label>
+            <input type="number" class="form-control" id="max_log_lines" min="100" max="5000" step="100" value="500" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 保存按钮 -->
+    <div class="col-12">
+      <button class="btn btn-primary px-4" onclick="saveSettings()">
+        <i class="fas fa-save me-2"></i>保存设置
+      </button>
+      <button class="btn btn-outline-secondary ms-2 px-4" onclick="loadSettings()">
+        <i class="fas fa-undo me-2"></i>恢复默认
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const FIELDS = ['cpu_alert_threshold','memory_alert_threshold','disk_alert_threshold',
+                'log_level','auto_refresh_interval','max_log_lines'];
+
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    const data = await res.json();
+    FIELDS.forEach(f => {
+      const el = document.getElementById(f);
+      if (el && data[f] !== undefined) el.value = data[f];
+    });
+  } catch(e) { showToast('加载设置失败', 'danger'); }
+}
+
+async function saveSettings() {
+  const payload = {};
+  FIELDS.forEach(f => {
+    const el = document.getElementById(f);
+    if (!el) return;
+    payload[f] = el.tagName === 'SELECT' ? el.value : Number(el.value);
+    if (f === 'log_level') payload[f] = el.value;
+  });
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) showToast('设置已保存', 'success');
+    else showToast('保存失败', 'danger');
+  } catch(e) { showToast('保存失败', 'danger'); }
+}
+
+document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+{% endblock %}

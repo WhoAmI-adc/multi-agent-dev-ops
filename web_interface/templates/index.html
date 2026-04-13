@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}仪表板 — DevOps 智能体系统{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0 fw-bold"><i class="fas fa-tachometer-alt me-2 text-primary"></i>系统仪表板</h4>
+    <small class="text-muted">最后刷新: <span id="lastRefresh">-</span></small>
+  </div>
+
+  <!-- 系统指标卡片 -->
+  <div class="row g-3 mb-4">
+    <!-- CPU -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card metric-card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">CPU 使用率</p>
+              <h3 class="fw-bold mb-1" id="cpu-value">--</h3>
+            </div>
+            <div class="metric-icon bg-primary bg-opacity-10 text-primary rounded-3 p-2">
+              <i class="fas fa-microchip fa-lg"></i>
+            </div>
+          </div>
+          <div class="progress mt-2" style="height:6px">
+            <div class="progress-bar bg-primary" id="cpu-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 内存 -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card metric-card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">内存使用率</p>
+              <h3 class="fw-bold mb-1" id="mem-value">--</h3>
+              <small class="text-muted" id="mem-detail">-- / -- GB</small>
+            </div>
+            <div class="metric-icon bg-success bg-opacity-10 text-success rounded-3 p-2">
+              <i class="fas fa-memory fa-lg"></i>
+            </div>
+          </div>
+          <div class="progress mt-2" style="height:6px">
+            <div class="progress-bar bg-success" id="mem-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 磁盘 -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card metric-card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">磁盘使用率</p>
+              <h3 class="fw-bold mb-1" id="disk-value">--</h3>
+              <small class="text-muted" id="disk-detail">-- / -- GB</small>
+            </div>
+            <div class="metric-icon bg-warning bg-opacity-10 text-warning rounded-3 p-2">
+              <i class="fas fa-hdd fa-lg"></i>
+            </div>
+          </div>
+          <div class="progress mt-2" style="height:6px">
+            <div class="progress-bar bg-warning" id="disk-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 运行中任务 -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card metric-card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted small mb-1">运行中任务</p>
+              <h3 class="fw-bold mb-1" id="tasks-value">0</h3>
+              <small class="text-muted">告警: <span id="alerts-count" class="text-danger fw-bold">0</span></small>
+            </div>
+            <div class="metric-icon bg-info bg-opacity-10 text-info rounded-3 p-2">
+              <i class="fas fa-tasks fa-lg"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- 智能体状态 -->
+    <div class="col-12 col-lg-5">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h6 class="fw-bold mb-0"><i class="fas fa-robot me-2 text-primary"></i>智能体状态</h6>
+        </div>
+        <div class="card-body" id="agents-list">
+          <div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 性能趋势图 -->
+    <div class="col-12 col-lg-7">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h6 class="fw-bold mb-0"><i class="fas fa-chart-area me-2 text-primary"></i>性能趋势</h6>
+        </div>
+        <div class="card-body">
+          <canvas id="performanceChart" style="max-height:220px"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 告警 & 最近活动 -->
+  <div class="row g-3 mt-1">
+    <!-- 告警 -->
+    <div class="col-12 col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h6 class="fw-bold mb-0"><i class="fas fa-exclamation-triangle me-2 text-warning"></i>当前告警</h6>
+        </div>
+        <div class="card-body" id="alerts-list">
+          <p class="text-muted text-center small py-2">无告警</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最近活动 -->
+    <div class="col-12 col-lg-8">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-0 pb-0 d-flex justify-content-between">
+          <h6 class="fw-bold mb-0"><i class="fas fa-clock me-2 text-primary"></i>最近活动</h6>
+          <a href="/history" class="small text-primary">查看全部 <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>场景</th>
+                  <th>状态</th>
+                  <th>时间</th>
+                  <th>耗时</th>
+                </tr>
+              </thead>
+              <tbody id="recent-history"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}" />
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
