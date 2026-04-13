@@ -12,6 +12,9 @@ psutil>=5.9.0
 # crewAI 多智能体框架（核心）
 crewai[tools]>=0.80.0
 
+# Anthropic Claude API（自研框架 LLM 后端）
+anthropic>=0.25.0
+
 # ===== 开发和测试依赖 =====
 
 # 测试框架

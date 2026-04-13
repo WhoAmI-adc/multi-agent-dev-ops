@@ -9,3 +9,22 @@ dist/
 build/
 .pytest_cache/
 *.log
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Generated reports
+dev_scenario_report.json

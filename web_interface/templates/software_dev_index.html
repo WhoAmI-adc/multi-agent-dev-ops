@@ -88,6 +88,45 @@
 /* ──────────────── 统计卡片 ──────────────── */
 .stat-card { border-radius: .75rem; border: none; }
 .stat-card .stat-icon { font-size: 2rem; opacity: .7; }
+
+{% block title %}软件开发框架 — 多智能体 DevOps 系统{% endblock %}
+
+{% block extra_css %}
+<style>
+  .agent-card {
+    border: 2px solid transparent;
+    transition: border-color .25s, transform .2s, box-shadow .2s;
+    cursor: default;
+  }
+  .agent-card:hover {
+    border-color: var(--bs-primary);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,.12);
+  }
+  .agent-icon {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+  }
+  .scenario-card {
+    border-left: 4px solid var(--bs-primary);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .scenario-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,.1); }
+  .log-box {
+    background: #0d1117; color: #c9d1d9;
+    font-family: 'Courier New', monospace; font-size: .82rem;
+    height: 340px; overflow-y: auto;
+    border-radius: .5rem; padding: 1rem;
+  }
+  .log-box .log-info   { color: #58a6ff; }
+  .log-box .log-success{ color: #3fb950; }
+  .log-box .log-warn   { color: #d29922; }
+  .log-box .log-error  { color: #f85149; }
+  .badge-agent { font-size: .7rem; }
+  .progress-thin { height: 6px; border-radius: 3px; }
+  #framework-badge { font-size: .75rem; }
 </style>
 {% endblock %}
 
@@ -148,6 +187,57 @@
             <div class="small opacity-75">运行中任务</div>
             <div class="fs-3 fw-bold" id="stat-running">0</div>
           </div>
+<div class="container-fluid px-4 py-3">
+
+  <!-- ── 页面标题 ── -->
+  <div class="row mb-4 align-items-center">
+    <div class="col">
+      <h4 class="mb-0 fw-bold">
+        <i class="fas fa-code-branch text-primary me-2"></i>多智能体软件开发框架
+      </h4>
+      <small class="text-muted">完全自主研发 · 不依赖 CrewAI 等外部框架</small>
+    </div>
+    <div class="col-auto">
+      <span id="framework-badge" class="badge bg-secondary">加载中…</span>
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-sm btn-outline-primary" onclick="loadFrameworkStatus()">
+        <i class="fas fa-sync-alt me-1"></i>刷新状态
+      </button>
+    </div>
+  </div>
+
+  <!-- ── 框架概述 ── -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center py-3">
+          <div class="text-primary fs-1 fw-bold" id="stat-agents">—</div>
+          <div class="text-muted small">智能体数量</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center py-3">
+          <div class="text-success fs-1 fw-bold" id="stat-workflows">—</div>
+          <div class="text-muted small">已执行工作流</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center py-3">
+          <div class="text-warning fs-1 fw-bold" id="stat-tasks">—</div>
+          <div class="text-muted small">累计任务数</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center py-3">
+          <div class="text-info fs-1 fw-bold" id="stat-messages">—</div>
+          <div class="text-muted small">通信消息数</div>
         </div>
       </div>
     </div>
@@ -215,10 +305,36 @@
                   <div class="col-6"><i class="fas fa-check text-success me-1"></i>Think-Plan-Execute-Summarize</div>
                   <div class="col-6"><i class="fas fa-check text-success me-1"></i>并行/串行工作流</div>
                 </div>
+  <!-- ── 5 个智能体展示 ── -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent fw-semibold">
+      <i class="fas fa-users text-primary me-2"></i>开发团队智能体
+    </div>
+    <div class="card-body">
+      <div class="row g-3" id="agent-cards">
+        {% set dev_agents = [
+          {'id':'architect_agent',       'name':'架构师',     'role':'系统设计与技术选型', 'icon':'fas fa-drafting-compass', 'color':'primary'},
+          {'id':'developer_agent',       'name':'开发工程师', 'role':'代码实现与功能开发', 'icon':'fas fa-laptop-code',      'color':'success'},
+          {'id':'test_engineer_agent',   'name':'测试工程师', 'role':'测试设计与质量保证', 'icon':'fas fa-vial',             'color':'warning'},
+          {'id':'code_reviewer_agent',   'name':'代码审查官', 'role':'代码审查与质量把控', 'icon':'fas fa-search-plus',      'color':'danger'},
+          {'id':'project_manager_agent', 'name':'项目经理',   'role':'任务协调与进度管理', 'icon':'fas fa-tasks',            'color':'info'},
+        ] %}
+        {% for ag in dev_agents %}
+        <div class="col-md-4 col-lg">
+          <div class="card agent-card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-start gap-3 py-3">
+              <div class="agent-icon bg-{{ ag.color }} bg-opacity-10 text-{{ ag.color }} flex-shrink-0">
+                <i class="{{ ag.icon }}"></i>
+              </div>
+              <div>
+                <div class="fw-semibold">{{ ag.name }}</div>
+                <div class="text-muted" style="font-size:.78rem">{{ ag.role }}</div>
+                <span class="badge bg-success bg-opacity-10 text-success badge-agent mt-1">在线</span>
               </div>
             </div>
           </div>
         </div>
+        {% endfor %}
       </div>
     </div>
   </div>
@@ -269,6 +385,91 @@
       <!-- 执行结果 -->
       <div id="dev-exec-result" class="mt-3" style="display:none">
         <div class="alert mb-0" id="dev-exec-result-alert"></div>
+  <!-- ── 3 个场景执行 ── -->
+  <div class="row g-4 mb-4">
+
+    <!-- 场景 1：用户认证 -->
+    <div class="col-md-4">
+      <div class="card scenario-card border-0 shadow-sm h-100" style="border-left-color: #0d6efd !important;">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-lock text-primary fs-4 me-2"></i>
+            <h6 class="mb-0 fw-bold">场景 1：用户认证模块</h6>
+          </div>
+          <p class="text-muted small mb-3">
+            5 步完整流程：架构设计 → 代码实现 → 测试生成 → 代码审查 → 代码优化。
+            实现 JWT + bcrypt 安全认证系统。
+          </p>
+          <ul class="list-unstyled small text-muted mb-3">
+            <li><i class="fas fa-check-circle text-success me-1"></i>架构师设计系统架构</li>
+            <li><i class="fas fa-check-circle text-success me-1"></i>开发工程师实现核心代码</li>
+            <li><i class="fas fa-check-circle text-success me-1"></i>测试工程师生成测试用例</li>
+            <li><i class="fas fa-check-circle text-success me-1"></i>代码审查官安全审查</li>
+            <li><i class="fas fa-check-circle text-success me-1"></i>开发工程师优化代码</li>
+          </ul>
+          <div class="progress progress-thin mb-3 d-none" id="prog-auth">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div>
+          </div>
+          <button class="btn btn-primary btn-sm w-100" onclick="runScenario('auth')" id="btn-auth">
+            <i class="fas fa-play me-1"></i>运行场景 1
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 场景 2：数据处理 -->
+    <div class="col-md-4">
+      <div class="card scenario-card border-0 shadow-sm h-100" style="border-left-color: #198754 !important;">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-database text-success fs-4 me-2"></i>
+            <h6 class="mb-0 fw-bold">场景 2：数据处理模块</h6>
+          </div>
+          <p class="text-muted small mb-3">
+            4 步流程：架构设计 → 代码实现 → 测试生成 → 代码审查。
+            构建高性能数据清洗与聚合管道（Pipeline 模式）。
+          </p>
+          <ul class="list-unstyled small text-muted mb-3">
+            <li><i class="fas fa-check-circle text-success me-1"></i>架构师设计 Pipeline 架构</li>
+            <li><i class="fas fa-check-circle text-success me-1"></i>开发工程师实现数据处理</li>
+            <li><i class="fas fa-check-circle text-success me-1"></i>测试工程师编写测试</li>
+            <li><i class="fas fa-check-circle text-success me-1"></i>代码审查官审查代码</li>
+          </ul>
+          <div class="progress progress-thin mb-3 d-none" id="prog-data">
+            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width:0%"></div>
+          </div>
+          <button class="btn btn-success btn-sm w-100" onclick="runScenario('data')" id="btn-data">
+            <i class="fas fa-play me-1"></i>运行场景 2
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 场景 3：REST API -->
+    <div class="col-md-4">
+      <div class="card scenario-card border-0 shadow-sm h-100" style="border-left-color: #6f42c1 !important;">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-server text-purple fs-4 me-2" style="color:#6f42c1"></i>
+            <h6 class="mb-0 fw-bold">场景 3：REST API 服务</h6>
+          </div>
+          <p class="text-muted small mb-3">
+            4 步流程：API 设计 → 代码实现 → 集成测试 → 代码审查。
+            构建符合 RESTful 规范的商品管理 API 服务。
+          </p>
+          <ul class="list-unstyled small text-muted mb-3">
+            <li><i class="fas fa-check-circle text-success me-1"></i>架构师设计 API 端点</li>
+            <li><i class="fas fa-check-circle text-success me-1"></i>开发工程师实现 Flask API</li>
+            <li><i class="fas fa-check-circle text-success me-1"></i>测试工程师编写集成测试</li>
+            <li><i class="fas fa-check-circle text-success me-1"></i>代码审查官审查实现</li>
+          </ul>
+          <div class="progress progress-thin mb-3 d-none" id="prog-api">
+            <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" style="width:0%"></div>
+          </div>
+          <button class="btn btn-sm w-100 text-white" style="background:#6f42c1" onclick="runScenario('api')" id="btn-api">
+            <i class="fas fa-play me-1"></i>运行场景 3
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -299,11 +500,23 @@
             </tr>
           </tbody>
         </table>
+  <!-- ── 实时日志输出 ── -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+      <span class="fw-semibold"><i class="fas fa-terminal text-secondary me-2"></i>实时执行日志</span>
+      <button class="btn btn-sm btn-outline-secondary" onclick="clearLog()">
+        <i class="fas fa-trash me-1"></i>清除
+      </button>
+    </div>
+    <div class="card-body p-0">
+      <div class="log-box" id="dev-log">
+        <span class="log-info">[系统] 多智能体开发框架就绪，等待场景执行…</span>
       </div>
     </div>
   </div>
 
 </div><!-- /container-fluid -->
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -596,6 +809,132 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 每 10 秒刷新智能体状态
   setInterval(loadDevDashboard, 10000);
+const socket = window._socket || io();
+
+// ── 框架状态 ─────────────────────────────────
+function loadFrameworkStatus() {
+  fetch('/api/framework/status')
+    .then(r => r.json())
+    .then(d => {
+      if (!d.success) return;
+      const s = d.status;
+      document.getElementById('stat-agents').textContent    = s.total_agents;
+      document.getElementById('stat-workflows').textContent = s.workflows_executed;
+      document.getElementById('stat-tasks').textContent     = s.total_tasks;
+      document.getElementById('stat-messages').textContent  = s.total_messages;
+      document.getElementById('framework-badge').className  = 'badge bg-success';
+      document.getElementById('framework-badge').textContent = `${s.framework} v${s.version}`;
+    })
+    .catch(() => {
+      document.getElementById('framework-badge').className  = 'badge bg-danger';
+      document.getElementById('framework-badge').textContent = '框架加载失败';
+    });
+}
+
+// ── 运行场景 ─────────────────────────────────
+function runScenario(key) {
+  const btn  = document.getElementById(`btn-${key}`);
+  const prog = document.getElementById(`prog-${key}`);
+  if (!btn || btn.disabled) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>执行中…';
+  if (prog) { prog.classList.remove('d-none'); setProgress(key, 5); }
+
+  appendLog(`[系统] 正在启动场景: ${scenarioLabel(key)}…`, 'info');
+
+  fetch(`/api/scenario/${key}`, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      appendLog(`[API] ${d.message || '场景已启动'}`, 'info');
+    })
+    .catch(e => {
+      appendLog(`[错误] 请求失败: ${e}`, 'error');
+      resetBtn(key);
+    });
+}
+
+function scenarioLabel(key) {
+  return { auth: '用户认证模块开发', data: '数据处理模块开发', api: 'REST API 服务开发' }[key] || key;
+}
+
+function setProgress(key, pct) {
+  const prog = document.getElementById(`prog-${key}`);
+  if (!prog) return;
+  prog.querySelector('.progress-bar').style.width = pct + '%';
+}
+
+function resetBtn(key) {
+  const btn  = document.getElementById(`btn-${key}`);
+  const prog = document.getElementById(`prog-${key}`);
+  const labels = { auth: '运行场景 1', data: '运行场景 2', api: '运行场景 3' };
+  if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fas fa-play me-1"></i>${labels[key] || '运行'}`; }
+  if (prog) prog.classList.add('d-none');
+}
+
+// ── 日志 ─────────────────────────────────────
+const logBox = document.getElementById('dev-log');
+
+function appendLog(msg, level) {
+  const cls   = { info:'log-info', success:'log-success', warn:'log-warn', error:'log-error' }[level] || '';
+  const ts    = new Date().toLocaleTimeString('zh-CN');
+  const line  = document.createElement('div');
+  line.className = cls;
+  line.textContent = `[${ts}] ${msg}`;
+  logBox.appendChild(line);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+function clearLog() { logBox.innerHTML = ''; }
+
+// ── WebSocket 事件 ────────────────────────────
+socket.on('task_progress', d => {
+  const key = scenarioKeyFromTaskId(d.task_id);
+  if (key) setProgress(key, d.progress || 0);
+  const agent = (d.agent && d.agent.name) ? d.agent.name : '智能体';
+  appendLog(`[${agent}] ${d.message || d.step}`, 'info');
+});
+
+socket.on('task_completed', d => {
+  appendLog(`[完成] ${d.result}`, 'success');
+  // 尝试重置对应按钮
+  ['auth','data','api'].forEach(k => {
+    if (d.task_id && d.task_id.includes(k)) resetBtn(k);
+  });
+  // 刷新统计
+  setTimeout(loadFrameworkStatus, 500);
+});
+
+socket.on('task_failed', d => {
+  appendLog(`[失败] ${d.error}`, 'error');
+  ['auth','data','api'].forEach(k => { resetBtn(k); });
+});
+
+socket.on('new_log', d => {
+  // 显示来自开发框架组件的日志
+  const devSources = [
+    'orchestrator', 'api',
+    'architect_agent', 'developer_agent', 'test_engineer_agent',
+    'code_reviewer_agent', 'project_manager_agent',
+    '架构师', '开发工程师', '测试工程师', '代码审查官', '项目经理',
+  ];
+  if (devSources.includes(d.source)) {
+    const lvl = d.level === 'ERROR' ? 'error' : d.level === 'WARNING' ? 'warn' : 'info';
+    appendLog(`[${d.source}] ${d.message}`, lvl);
+  }
+});
+
+function scenarioKeyFromTaskId(taskId) {
+  if (!taskId) return null;
+  if (taskId.includes('auth')) return 'auth';
+  if (taskId.includes('data')) return 'data';
+  if (taskId.includes('api'))  return 'api';
+  return null;
+}
+
+// ── 初始化 ────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadFrameworkStatus();
 });
 </script>
 {% endblock %}
