@@ -526,8 +526,9 @@ def api_framework_status():
         orch = _make_dev_orchestrator()
         status = orch.get_framework_status()
         return jsonify({'success': True, 'status': status})
-    except Exception as exc:
-        return jsonify({'success': False, 'error': str(exc)}), 500
+    except Exception:
+        logger.exception('获取框架状态时发生错误')
+        return jsonify({'success': False, 'error': '框架状态获取失败，请查看服务端日志'}), 500
 
 
 @app.route('/api/scenario/auth', methods=['POST'])
@@ -605,12 +606,12 @@ def api_scenario_api():
 
     thread = threading.Thread(
         target=_run_dev_scenario,
-        args=('api_service', _factory),
+        args=('api', _factory),
         daemon=True,
     )
     thread.start()
     add_log('INFO', '已触发开发场景: REST API 服务', source='api')
-    return jsonify({'status': 'started', 'scenario': 'api_service', 'message': 'REST API 开发场景已启动'})
+    return jsonify({'status': 'started', 'scenario': 'api', 'message': 'REST API 开发场景已启动'})
 
 
 # ──────────────────────────────────────────────

@@ -331,7 +331,7 @@ socket.on('task_completed', d => {
   appendLog(`[完成] ${d.result}`, 'success');
   // 尝试重置对应按钮
   ['auth','data','api'].forEach(k => {
-    if (d.task_id && d.task_id.includes(k === 'api' ? 'api_service' : k)) resetBtn(k);
+    if (d.task_id && d.task_id.includes(k)) resetBtn(k);
   });
   // 刷新统计
   setTimeout(loadFrameworkStatus, 500);
@@ -343,9 +343,14 @@ socket.on('task_failed', d => {
 });
 
 socket.on('new_log', d => {
-  // 只显示来自开发框架的日志
-  if (['orchestrator','architect_agent','developer_agent','test_engineer_agent',
-       '架构师','开发工程师','测试工程师','代码审查官','项目经理','api'].includes(d.source)) {
+  // 显示来自开发框架组件的日志
+  const devSources = [
+    'orchestrator', 'api',
+    'architect_agent', 'developer_agent', 'test_engineer_agent',
+    'code_reviewer_agent', 'project_manager_agent',
+    '架构师', '开发工程师', '测试工程师', '代码审查官', '项目经理',
+  ];
+  if (devSources.includes(d.source)) {
     const lvl = d.level === 'ERROR' ? 'error' : d.level === 'WARNING' ? 'warn' : 'info';
     appendLog(`[${d.source}] ${d.message}`, lvl);
   }
@@ -353,9 +358,9 @@ socket.on('new_log', d => {
 
 function scenarioKeyFromTaskId(taskId) {
   if (!taskId) return null;
-  if (taskId.includes('auth'))       return 'auth';
-  if (taskId.includes('data'))       return 'data';
-  if (taskId.includes('api_service'))return 'api';
+  if (taskId.includes('auth')) return 'auth';
+  if (taskId.includes('data')) return 'data';
+  if (taskId.includes('api'))  return 'api';
   return null;
 }
 
